@@ -201,4 +201,9 @@ if (import.meta.main) {
   
   // Test methods on initialization
   client.connect().catch(console.error);
+  // test clean
+  setTimeout(() => {
+    console.log("Cleaning TikFinity...");
+    client.clean();
+  }, 15000);
 }

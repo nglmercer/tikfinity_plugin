@@ -5,7 +5,7 @@ import {
 } from "../constants";
 
 /**
- * Interfaz por defecto para el retorno
+ * Default interface for return
  */
 export interface SocketIoEvent<T = any> {
   eventName: string;
@@ -13,7 +13,7 @@ export interface SocketIoEvent<T = any> {
 }
 
 /**
- * Resultado de parseo con información de error
+ * Parsing result with error information
  */
 export interface ParseResult<T = any> {
   success: boolean;
@@ -22,9 +22,9 @@ export interface ParseResult<T = any> {
 }
 
 /**
- * Parsea un mensaje de Socket.io 42 con mapeo de llaves opcional.
- * @param message - El string crudo del socket (ej: '42["chat", {}]')
- * @param keys - (Opcional) Diccionario para renombrar las llaves de salida
+ * Parses a Socket.io 42 message with optional key mapping.
+ * @param message - The raw socket string (e.g., '42["chat", {}]')
+ * @param keys - (Optional) Dictionary to rename output keys
  */
 export function parseSocketIo42Message<
   T = any,
@@ -34,19 +34,19 @@ export function parseSocketIo42Message<
   message: string,
   keys?: { event: E; data: D }
 ): ({ [K in E]: string } & { [K in D]: T }) | null {
-  // Validamos el prefijo del protocolo Socket.io
+  // Validate the Socket.io protocol prefix
   if (!message || !message.startsWith(TIKTOK_CONSTANTS.SOCKET_IO_DATA_PREFIX)) {
     return null;
   }
 
   try {
-    // Extraemos y parseamos el JSON (saltando el "42")
+    // Extract and parse the JSON (skipping the "42")
     const parsed = JSON.parse(
       message.substring(TIKTOK_CONSTANTS.SOCKET_IO_DATA_PREFIX.length)
     );
 
     if (Array.isArray(parsed) && parsed.length >= 1) {
-      // Definimos las llaves que usaremos: las proveídas o las de SocketIoEvent por defecto
+      // Define the keys to use: provided ones or default SocketIoEvent ones
       const eventKey = keys?.event ?? ("eventName" as E);
       const dataKey = keys?.data ?? ("data" as D);
 
@@ -86,11 +86,11 @@ export function SocketIoMessage(message: string) {
   if (!message || message.length < 1) return null;
 
   const engineType = message[0];
-  // El socketType solo existe si engineType es '4' (MESSAGE)
+  // socketType only exists if engineType is '4' (MESSAGE)
   const socketType = engineType === SocketIoPacketType.MESSAGE ? message[1] : undefined;
 
-  // Determinamos dónde empieza el JSON real
-  // Si es '42', el JSON empieza en el índice 2. Si es '2' (PING), no hay JSON.
+  // Determine where the real JSON begins
+  // If it's '42', the JSON starts at index 2. If it's '2' (PING), there's no JSON.
   const payloadOffset = engineType === SocketIoPacketType.MESSAGE ? 2 : 1;
   const payloadRaw = message.substring(payloadOffset);
 
@@ -103,9 +103,9 @@ export function SocketIoMessage(message: string) {
 }
 
 /**
- * Parsea un string JSON genérico con manejo de errores
- * @param jsonString - String JSON a parsear
- * @returns ParseResult con el resultado del parseo
+ * Parses a generic JSON string with error handling
+ * @param jsonString - JSON string to parse
+ * @returns ParseResult with the parse result
  */
 export function parseJson<T = any>(jsonString: string): ParseResult<T> {
   if (!jsonString || typeof jsonString !== "string") {
@@ -130,10 +130,10 @@ export function parseJson<T = any>(jsonString: string): ParseResult<T> {
 }
 
 /**
- * Parsea un string JSON y valida contra un esquema arktype
- * @param jsonString - String JSON a parsear
- * @param schema - Esquema arktype para validar
- * @returns ParseResult con el resultado del parseo y validación
+ * Parses a JSON string and validates against an arktype schema
+ * @param jsonString - JSON string to parse
+ * @param schema - Arktype schema to validate
+ * @returns ParseResult with the parse and validation result
  */
 export function parseJsonWithSchema<T = any>(
   jsonString: string,
@@ -161,9 +161,9 @@ export function parseJsonWithSchema<T = any>(
 }
 
 /**
- * Parsea un string JSON que debe ser un array
- * @param jsonString - String JSON a parsear
- * @returns ParseResult con el array parseado
+ * Parses a JSON string that must be an array
+ * @param jsonString - JSON string to parse
+ * @returns ParseResult with the parsed array
  */
 export function parseJsonArray<T = any>(jsonString: string): ParseResult<T[]> {
   const parseResult = parseJson<T[]>(jsonString);
@@ -186,10 +186,10 @@ export function parseJsonArray<T = any>(jsonString: string): ParseResult<T[]> {
 }
 
 /**
- * Parsea un string JSON que debe ser un array y valida contra un esquema arktype
- * @param jsonString - String JSON a parsear
- * @param schema - Esquema arktype para validar cada elemento del array
- * @returns ParseResult con el array validado
+ * Parses a JSON string that must be an array and validates against an arktype schema
+ * @param jsonString - JSON string to parse
+ * @param schema - Arktype schema to validate each element of the array
+ * @returns ParseResult with the validated array
  */
 export function parseJsonArrayWithSchema<T = any>(
   jsonString: string,
@@ -201,7 +201,7 @@ export function parseJsonArrayWithSchema<T = any>(
     return parseResult;
   }
 
-  // Validar cada elemento del array
+  // Validate each element of the array
   for (let i = 0; i < parseResult.data!.length; i++) {
     const validation = schema(parseResult.data![i]);
 
@@ -222,9 +222,9 @@ export function parseJsonArrayWithSchema<T = any>(
 }
 
 /**
- * Parsea un string JSON que debe ser un objeto
- * @param jsonString - String JSON a parsear
- * @returns ParseResult con el objeto parseado
+ * Parses a JSON string that must be an object
+ * @param jsonString - JSON string to parse
+ * @returns ParseResult with the parsed object
  */
 export function parseJsonObject<T = Record<string, any>>(
   jsonString: string
@@ -253,10 +253,10 @@ export function parseJsonObject<T = Record<string, any>>(
 }
 
 /**
- * Parsea un string JSON que debe ser un objeto y valida contra un esquema arktype
- * @param jsonString - String JSON a parsear
- * @param schema - Esquema arktype para validar el objeto
- * @returns ParseResult con el objeto validado
+ * Parses a JSON string that must be an object and validates against an arktype schema
+ * @param jsonString - JSON string to parse
+ * @param schema - Arktype schema to validate the object
+ * @returns ParseResult with the validated object
  */
 export function parseJsonObjectWithSchema<T = Record<string, any>>(
   jsonString: string,
@@ -284,9 +284,9 @@ export function parseJsonObjectWithSchema<T = Record<string, any>>(
 }
 
 /**
- * Parsea un string JSON que debe ser un valor primitivo (string, number, boolean, null)
- * @param jsonString - String JSON a parsear
- * @returns ParseResult con el valor primitivo parseado
+ * Parses a JSON string that must be a primitive value (string, number, boolean, null)
+ * @param jsonString - JSON string to parse
+ * @returns ParseResult with the parsed primitive value
  */
 export function parseJsonPrimitive(
   jsonString: string
@@ -313,10 +313,10 @@ export function parseJsonPrimitive(
 }
 
 /**
- * Parsea un string JSON de forma segura con opciones de configuración
- * @param jsonString - String JSON a parsear
- * @param options - Opciones de configuración
- * @returns ParseResult con el resultado del parseo
+ * Safely parses a JSON string with configuration options
+ * @param jsonString - JSON string to parse
+ * @param options - Configuration options
+ * @returns ParseResult with the parse result
  */
 export function parseJsonSafe<T = any>(
   jsonString: string,
@@ -334,7 +334,7 @@ export function parseJsonSafe<T = any>(
   }
 
   try {
-    // Validar profundidad máxima si está especificado
+    // Validate max depth if specified
     if (options.strict && options.maxDepth !== undefined) {
       const depth = calculateJsonDepth(jsonString);
       if (depth > options.maxDepth) {
@@ -359,9 +359,9 @@ export function parseJsonSafe<T = any>(
 }
 
 /**
- * Calcula la profundidad de un string JSON
- * @param jsonString - String JSON a analizar
- * @returns Profundidad del JSON
+ * Calculates the depth of a JSON string
+ * @param jsonString - JSON string to analyze
+ * @returns JSON depth
  */
 function calculateJsonDepth(jsonString: string): number {
   let maxDepth = 0;
@@ -380,9 +380,9 @@ function calculateJsonDepth(jsonString: string): number {
 }
 
 /**
- * Parsea múltiples strings JSON de una sola vez
- * @param jsonStrings - Array de strings JSON a parsear
- * @returns Array de ParseResult
+ * Parses multiple JSON strings at once
+ * @param jsonStrings - Array of JSON strings to parse
+ * @returns Array of ParseResult
  */
 export function parseMultipleJson<T = any>(
   jsonStrings: string[]
@@ -391,10 +391,10 @@ export function parseMultipleJson<T = any>(
 }
 
 /**
- * Parsea un string JSON y lo formatea de forma bonita
- * @param jsonString - String JSON a parsear y formatear
- * @param indent - Número de espacios para indentación (default: 2)
- * @returns ParseResult con el JSON formateado
+ * Parses a JSON string and formats it nicely
+ * @param jsonString - JSON string to parse and format
+ * @param indent - Number of spaces for indentation (default: 2)
+ * @returns ParseResult with the formatted JSON
  */
 export function parseAndFormatJson(
   jsonString: string,
@@ -421,9 +421,9 @@ export function parseAndFormatJson(
 }
 
 /**
- * Crea un esquema arktype para SocketIoEvent
- * @param dataTypeSchema - Esquema opcional para el tipo de datos
- * @returns Esquema arktype para SocketIoEvent
+ * Creates an arktype schema for SocketIoEvent
+ * @param dataTypeSchema - Optional schema for the data type
+ * @returns Arktype schema for SocketIoEvent
  */
 export function createSocketIoEventSchema<T = any>(
   dataTypeSchema?: ReturnType<typeof type<any>>
@@ -442,10 +442,10 @@ export function createSocketIoEventSchema<T = any>(
 }
 
 /**
- * Parsea un mensaje de Socket.io 42 con validación de esquema arktype
- * @param message - El string crudo del socket (ej: '42["chat", {}]')
- * @param schema - Esquema arktype para validar los datos
- * @returns ParseResult con el evento validado
+ * Parses a Socket.io 42 message with arktype schema validation
+ * @param message - The raw socket string (e.g., '42["chat", {}]')
+ * @param schema - Arktype schema to validate the data
+ * @returns ParseResult with the validated event
  */
 export function parseSocketIo42MessageWithSchema<T = any>(
   message: string,
@@ -477,41 +477,41 @@ export function parseSocketIo42MessageWithSchema<T = any>(
 }
 
 /**
- * Tipos de utilidad para arktype
+ * Utility types for arktype
  */
 export const ArktypeSchemas = {
   /**
-   * Esquema para strings no vacíos
+   * Schema for non-empty strings
    */
   nonEmptyString: type("string > 0"),
 
   /**
-   * Esquema para emails
+   * Schema for emails
    */
   email: type("string.email"),
 
   /**
-   * Esquema para URLs
+   * Schema for URLs
    */
   url: type("string.url"),
 
   /**
-   * Esquema para números positivos
+   * Schema for positive numbers
    */
   positiveNumber: type("number > 0"),
 
   /**
-   * Esquema para números enteros
+   * Schema for integer numbers
    */
   integer: type("number.integer"),
 
   /**
-   * Esquema para arrays no vacíos
+   * Schema for non-empty arrays
    */
   nonEmptyArray: type("unknown[] > 0"),
 
   /**
-   * Esquema para objetos con propiedades requeridas
+   * Schema for objects with required properties
    */
   requiredObject: (requiredKeys: string[]) =>
     type({

@@ -30,8 +30,6 @@ async function startWebview() {
   const app = new Application();
   const window = app.createBrowserWindow({
     title: "TikTok Login - Synchronizing TikFinity",
-    width: 500,
-    height: 700,
   });
 
   const webview = window.createWebview({
