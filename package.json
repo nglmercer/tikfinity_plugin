@@ -1,0 +1,21 @@
+{
+  "name": "browserapi",
+  "module": "src/index.ts",
+  "type": "module",
+  "private": true,
+  "devDependencies": {
+    "@types/bun": "latest"
+  },
+  "peerDependencies": {
+    "typescript": "^5"
+  },
+  "scripts": {
+    "dev": "bun run src/index.ts"
+  },
+  "dependencies": {
+    "arktype": "^2.1.29",
+    "bun_plugins": "^1.2.5",
+    "cheerio": "^1.2.0",
+    "webview-napi": "^0.1.9"
+  }
+}
