@@ -53,17 +53,27 @@ export class TikFinityClient extends EventEmitter {
         const output = data.toString();
 
         if (output.includes(TIKTOK_CONSTANTS.PAYLOAD_PREFIX)) {
-          const payload = output.replace(TIKTOK_CONSTANTS.PAYLOAD_PREFIX, "").trim();
-          this.currentPayload = payload;
-
-          if (this.wsConnection?.isConnected()) {
-            console.log(LOG_MESSAGES.TIKFINITY.CONNECTION_EXISTS);
-            this.wsConnection.updatePayload(payload);
+          const lines = output.split('\n');
+          let payload = "";
+          
+          for (const line of lines) {
+            if (line.includes(TIKTOK_CONSTANTS.PAYLOAD_PREFIX)) {
+              payload = line.split(TIKTOK_CONSTANTS.PAYLOAD_PREFIX)[1].trim();
+            } else if (line.trim()) {
+              console.log(TIKTOK_CONSTANTS.EVENT_MESSAGE, line.trim());
+            }
+          }
+          
+          if (!payload || this.currentPayload === payload) {
             return;
           }
+          
+          this.currentPayload = payload;
 
           if (this.wsConnection) {
+            console.log("Closing previous WS connection for new payload...");
             this.wsConnection.disconnect();
+            this.wsConnection = null;
           }
 
           connectWS(payload, (message) => {
@@ -72,7 +82,7 @@ export class TikFinityClient extends EventEmitter {
             this.wsConnection = ws;
           });
         } else {
-            console.log(TIKTOK_CONSTANTS.EVENT_MESSAGE, output);
+            console.log(TIKTOK_CONSTANTS.EVENT_MESSAGE, output.trim());
         }
       });
     }
@@ -139,8 +149,7 @@ export class TikFinityClient extends EventEmitter {
   }
 
   /**
-   * Safely reconnects. If the payload is already known, it just recreates 
-   * the websocket. Otherwise, it restarts the entire process.
+   * Safely reconnects using the current payload, without killing the webview.
    */
   public reconnect(): void {
     console.log("Reconnecting TikFinity...");
@@ -153,7 +162,6 @@ export class TikFinityClient extends EventEmitter {
         this.wsConnection = ws;
       });
     } else {
-      this.clean();
       this.connect();
     }
   }
@@ -184,7 +192,11 @@ export default definePlugin({
 
 if (import.meta.main) {
   client.on("event", (payload) => {
-    console.log(`[${PLATFORMS.TIKTOK} Event]:`, payload);
+    if (payload.eventName === 'chat') {
+      console.log(payload.data.comment);
+    }
+    return
+    console.log(`[${PLATFORMS.TIKTOK} Event]:`, typeof payload);
   });
   
   // Test methods on initialization

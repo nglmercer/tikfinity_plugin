@@ -2,27 +2,27 @@ import * as fs from "fs";
 import * as path from "path";
 
 /**
- * Obtiene el directorio base de la aplicación.
- * - En desarrollo: retorna process.cwd()
- * - En ejecutable compilado: retorna el directorio donde está el ejecutable
+ * Gets the base directory of the application.
+ * - In development: returns process.cwd()
+ * - In compiled executable: returns the directory where the executable is located
  */
 function getBaseDir(): string {
-    // process.execPath contiene la ruta del ejecutable de Bun
-    // En un ejecutable compilado con `bun build --compile`, apunta al ejecutable mismo
+    // process.execPath contains the path of the Bun executable
+    // In an executable compiled with `bun build --compile`, it points to the executable itself
     const execPath = process.execPath;
     
-    // Detectar si estamos en un ejecutable compilado
-    // En desarrollo, execPath apunta a bun (/usr/bin/bun o similar)
-    // En compilado, apunta al ejecutable del proyecto
+    // Detect if we are in a compiled executable
+    // In development, execPath points to bun (/usr/bin/bun or similar)
+    // In compiled, it points to the project executable
     const isBunRuntime = execPath.includes('/bun') || execPath.includes('\\bun');
     
     if (!isBunRuntime) {
-        // Estamos en un ejecutable compilado
-        // Retornar el directorio donde está el ejecutable
+        // We are in a compiled executable
+        // Return the directory where the executable is located
         return path.dirname(execPath);
     }
     
-    // En desarrollo, usar process.cwd()
+    // In development, use process.cwd()
     return process.cwd();
 }
 

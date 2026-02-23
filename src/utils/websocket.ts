@@ -61,7 +61,7 @@ class TikTokWebSocket {
       this.emitter?.(event.data);
       const dataStr = String(event.data);
 
-      // Manejo de PING/PONG (Socket.io lo requiere para no desconectarse)
+      // PING/PONG handling (Socket.io requires it to not disconnect)
       if (dataStr === TIKTOK_CONSTANTS.PING_MESSAGE) {
         this.socket?.send(TIKTOK_CONSTANTS.PONG_MESSAGE);
       }
@@ -85,7 +85,7 @@ class TikTokWebSocket {
 
       this.socket = null;
 
-      // Intentar reconectar si no fue cierre manual
+      // Try to reconnect if it wasn't a manual close
       if (!this.isManuallyClosed && this.options.reconnect) {
         this.scheduleReconnect();
       }
@@ -100,7 +100,7 @@ class TikTokWebSocket {
 
     this.reconnectAttempts++;
 
-    // Backoff exponencial con jitter
+    // Exponential backoff with jitter
     const delay = Math.min(
       this.options.reconnectDelay * Math.pow(2, this.reconnectAttempts - 1),
       this.options.maxReconnectDelay

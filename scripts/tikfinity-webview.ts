@@ -9,22 +9,27 @@ const injectionScript = `
         const originalSend = WebSocket.prototype.send;
         WebSocket.prototype.send = function (data) {
             if (typeof data === 'string' && data.includes("setUniqueId")) {
-                console.log("injectionScript data", data)
-                window.TiktokPayload = data;
-                window.ipc.postMessage(data);
+                if (window.TiktokPayload !== data) {
+                    console.log("injectionScript new data captured:", data)
+                    window.TiktokPayload = data;
+                    window.ipc.postMessage(data);
+                }
+                // WE WILL NOT DO "return originalSend()". 
+                // Blocking the send in the browser prevents it from kicking out the backend connection (Bun)
+                return;
             }
             return originalSend.apply(this, arguments);
         };
-        console.log("💉 Interceptor de WebSocket inyectado");
+        console.log("WebSocket interceptor injected");
     })();
 `;
 
 async function startWebview() {
-  console.log("🔌 Iniciando proceso webview TikFinity...");
+  console.log("Starting TikFinity webview process...");
 
   const app = new Application();
   const window = app.createBrowserWindow({
-    title: "TikTok Login - Sincronizando TikFinity",
+    title: "TikTok Login - Synchronizing TikFinity",
     width: 500,
     height: 700,
   });
@@ -36,22 +41,22 @@ async function startWebview() {
   });
 
   webview.onIpcMessage((_e, message) => {
-    // Convertimos el Buffer del cuerpo del mensaje a texto
+    // Convert the message body Buffer to text
     const payload = message.toString();
 
-    console.log("🚀 Payload recibido desde el navegador:", payload);
+    console.log("Payload received from browser:", payload);
 
     if (payload.includes("setUniqueId")) {
-      console.log("✅ Credenciales capturadas con éxito");
+      console.log("Credentials captured successfully");
       console.log("PAYLOAD:", payload);
 
-      // Enviamos el payload al proceso padre a través de stdout
+      // Send the payload to the parent process via stdout
       process.stdout.write(`TikFinity_PAYLOAD:${payload}\n`);
 
-      // Esperamos un momento para asegurar que el mensaje se envíe
+      // Wait a moment to ensure the message is sent
       setTimeout(() => {
-        //    app.exit();
-      }, 100);
+        // app.exit();
+      }, 500);
     }
   });
 
