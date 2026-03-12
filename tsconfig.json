@@ -1,15 +1,19 @@
 {
   "compilerOptions": {
-    // Environment setup & latest features
+    // Environment setup - change target for specific Node.js version
+    // "ES2020" = Node.js 12+
+    // "ES2021" = Node.js 15+
+    // "ES2022" = Node.js 16+
+    // "ESNext" = Latest (Node.js 18+)
     "lib": ["ESNext"],
     "target": "ESNext",
-    "module": "Preserve",
-    "moduleDetection": "force",
+    "module": "nodenext",
+    "moduleDetection": "auto",
     "jsx": "react-jsx",
     "allowJs": true,
 
     // Bundler mode
-    "moduleResolution": "bundler",
+    "moduleResolution": "nodenext",
     "allowImportingTsExtensions": true,
     "verbatimModuleSyntax": true,
     "noEmit": true,
