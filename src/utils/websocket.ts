@@ -14,6 +14,7 @@ interface ConnectionOptions {
   maxReconnectAttempts?: number;
   reconnectDelay?: number;
   maxReconnectDelay?: number;
+  logger?: (message: string, ...args: unknown[]) => void;
 }
 
 class TikTokWebSocket {
@@ -34,24 +35,25 @@ class TikTokWebSocket {
       maxReconnectAttempts: options.maxReconnectAttempts ?? WS_CONSTANTS.MAX_RECONNECT_ATTEMPTS,
       reconnectDelay: options.reconnectDelay ?? TIMING.RECONNECT_DELAY,
       maxReconnectDelay: options.maxReconnectDelay ?? TIMING.MAX_RECONNECT_DELAY,
+      logger: options.logger ?? console.log,
     };
   }
 
   connect(): void {
     if (this.socket?.readyState === WebSocket.OPEN) {
-      console.log(LOG_MESSAGES.WEBSOCKET.ALREADY_OPEN);
+      this.options.logger(LOG_MESSAGES.WEBSOCKET.ALREADY_OPEN);
       return;
     }
 
     this.isManuallyClosed = false;
-    console.log(LOG_MESSAGES.WEBSOCKET.CONNECTING(this.reconnectAttempts + 1));
+    this.options.logger(LOG_MESSAGES.WEBSOCKET.CONNECTING(this.reconnectAttempts + 1));
 
     this.socket = new WebSocket(
       `${TIKTOK_CONSTANTS.WEBSOCKET_URL}${TIKTOK_CONSTANTS.WEBSOCKET_PARAMS}`
     );
 
     this.socket.onopen = () => {
-      console.log(LOG_MESSAGES.WEBSOCKET.OPEN);
+      this.options.logger(LOG_MESSAGES.WEBSOCKET.OPEN);
       this.reconnectAttempts = 0;
       // We no longer send '40' or the payload blindly.
       // We will wait for Engine.io and Socket.io handshake messages respectively.
@@ -72,16 +74,16 @@ class TikTokWebSocket {
       // Handshake step 2: Server accepts Socket.io connect -> we send our payload ('42[...]')
       else if (dataStr.startsWith("40")) {
         this.socket?.send(this.payload);
-        console.log(LOG_MESSAGES.WEBSOCKET.PAYLOAD_SENT);
+        this.options.logger(LOG_MESSAGES.WEBSOCKET.PAYLOAD_SENT);
       }
     };
 
     this.socket.onerror = (error) => {
-      console.error({ wsError: error });
+      this.options.logger('wsError: ' + JSON.stringify(error));
     };
 
     this.socket.onclose = (event) => {
-      console.log({ closed: event });
+      this.options.logger('closed: ' + JSON.stringify(event));
 
       this.socket = null;
 
@@ -94,7 +96,7 @@ class TikTokWebSocket {
 
   private scheduleReconnect(): void {
     if (this.reconnectAttempts >= this.options.maxReconnectAttempts) {
-      console.error(LOG_MESSAGES.WEBSOCKET.MAX_RECONNECT);
+      this.options.logger(LOG_MESSAGES.WEBSOCKET.MAX_RECONNECT);
       return;
     }
 
@@ -108,7 +110,7 @@ class TikTokWebSocket {
     const jitter = Math.random() * 1000;
     const finalDelay = delay + jitter;
 
-    console.log(
+    this.options.logger(
       LOG_MESSAGES.WEBSOCKET.RECONNECTING(finalDelay, this.reconnectAttempts, this.options.maxReconnectAttempts)
     );
 
@@ -130,7 +132,7 @@ class TikTokWebSocket {
       this.socket = null;
     }
 
-    console.log(LOG_MESSAGES.WEBSOCKET.DISCONNECTED);
+    this.options.logger(LOG_MESSAGES.WEBSOCKET.DISCONNECTED);
   }
 
   isConnected(): boolean {
@@ -141,11 +143,11 @@ class TikTokWebSocket {
     this.payload = newPayload;
 
     if (this.isConnected()) {
-      console.log(LOG_MESSAGES.WEBSOCKET.UPDATING_PAYLOAD);
+      this.options.logger(LOG_MESSAGES.WEBSOCKET.UPDATING_PAYLOAD);
       this.socket?.send(newPayload);
-      console.log(LOG_MESSAGES.WEBSOCKET.NEW_PAYLOAD_SENT);
+      this.options.logger(LOG_MESSAGES.WEBSOCKET.NEW_PAYLOAD_SENT);
     } else {
-      console.log(LOG_MESSAGES.WEBSOCKET.NOT_CONNECTED);
+      this.options.logger(LOG_MESSAGES.WEBSOCKET.NOT_CONNECTED);
       this.connect();
     }
   }

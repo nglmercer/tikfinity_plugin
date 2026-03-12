@@ -3,6 +3,7 @@ import {
   LOG_MESSAGES,
   PLATFORMS,
   TIKFINITY_EVENTS,
+  type TikFinityOptions,
 } from "../src/constants";
 import { TikFinityClient } from "./client";
 
@@ -14,6 +15,14 @@ let eventHandler: ((payload: unknown) => void) | null = null;
 
 export { TikFinityClient };
 export const tikfinityClient = client;
+export type { TikFinityOptions };
+
+/**
+ * Create a TikFinity client with custom options
+ */
+export function createTikFinityClient(options?: TikFinityOptions): TikFinityClient {
+  return new TikFinityClient(options);
+}
 
 export default definePlugin({
   name: "tikfinity",
@@ -21,12 +30,13 @@ export default definePlugin({
   onLoad: async (context: PluginContext) => {
     const { emit, log } = context;
     log.info(LOG_MESSAGES.PLUGIN.LOADING);
+    
     // Set up event handler
     eventHandler = (payload: unknown) => {
       if (emit && typeof emit === "function") {
         emit(PLATFORMS.TIKTOK, payload);
       } else {
-        console.log(`[${PLATFORMS.TIKTOK}]`, payload);
+        log.info(`[${PLATFORMS.TIKTOK}]`, payload);
       }
     };
     
@@ -70,7 +80,16 @@ export default definePlugin({
 });
 
 if (import.meta.main) {
-  client.on(TIKFINITY_EVENTS.EVENT, (payload: unknown) => {
+  // Create client with custom options
+  const customClient = new TikFinityClient({
+    autoReconnect: true,
+    maxReconnectAttempts: 5,
+    reconnectDelay: 2000,
+    debug: true,
+    logger: (msg, ...args) => console.log(`[Custom]`, msg, ...args),
+  });
+  
+  customClient.on(TIKFINITY_EVENTS.EVENT, (payload: unknown) => {
     const p = payload as { eventName?: string; data?: { comment?: string } };
     if (p?.eventName === TIKFINITY_EVENTS.CHAT && p?.data?.comment) {
       console.log(p.data.comment);
@@ -79,16 +98,16 @@ if (import.meta.main) {
   });
   
   // Test methods on initialization
-  console.log('Connecting...');
-  await client.connect().catch(console.error);
+  console.log('Connecting with custom options...');
+  await customClient.connect().catch(console.error);
   
   // Test disconnect/reconnect cycle after 25 seconds
   await new Promise(resolver => setTimeout(resolver, 25000));
   console.log('Disconnecting...');
-  client.disconnect();
+  customClient.disconnect();
   
   // Wait 5 seconds then reconnect (uses existing payload + webview)
   await new Promise(resolver => setTimeout(resolver, 5000));
   console.log('Reconnecting with existing payload...');
-  client.reconnect();
+  customClient.reconnect();
 }

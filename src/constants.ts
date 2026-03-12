@@ -238,6 +238,25 @@ export const TIKFINITY_EVENTS = {
 } as const;
 
 // ============================================================================
+// TikFinity Plugin Options
+// ============================================================================
+
+export interface TikFinityOptions {
+  /** Enable/disable auto-reconnect on WebSocket disconnect */
+  autoReconnect?: boolean;
+  /** Maximum reconnect attempts before giving up */
+  maxReconnectAttempts?: number;
+  /** Initial delay between reconnect attempts (ms) */
+  reconnectDelay?: number;
+  /** Maximum delay between reconnect attempts (ms) */
+  maxReconnectDelay?: number;
+  /** Custom logger function */
+  logger?: (message: string, ...args: unknown[]) => void;
+  /** Enable/disable debug logging */
+  debug?: boolean;
+}
+
+// ============================================================================
 // Track End Reasons
 // ============================================================================
 

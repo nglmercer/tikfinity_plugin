@@ -9,6 +9,7 @@ import {
   TIKTOK_CONSTANTS,
   TIKFINITY_EVENTS,
   PATHS,
+  type TikFinityOptions,
 } from "../constants";
 
 /**
@@ -19,22 +20,40 @@ export class TikFinityClient extends EventEmitter {
   private webviewProcess: ChildProcess | null = null;
   private wsConnection: TikTokWebSocket | null = null;
   private currentPayload: string | null = null;
+  private options: TikFinityOptions = {};
+  private logger: (message: string, ...args: unknown[]) => void = console.log;
 
-  constructor() {
+  constructor(options: TikFinityOptions = {}) {
     super();
+    this.options = options;
+    if (options.logger) {
+      this.logger = options.logger;
+    } else if (options.debug) {
+      this.logger = (msg, ...args) => console.log(`[TikFinity]`, msg, ...args);
+    }
   }
 
   /**
    * Starts the webview process and initializes the WebSocket connection 
    * once the payload is received.
    */
-  public async connect(): Promise<void> {
+  public async connect(options?: TikFinityOptions): Promise<void> {
     if (this.webviewProcess) {
-      console.log(LOG_MESSAGES.WEBVIEW.STARTED);
+      this.logger(LOG_MESSAGES.WEBVIEW.STARTED);
       return;
     }
 
-    console.log(LOG_MESSAGES.WEBVIEW.STARTED);
+    // Merge options
+    if (options) {
+      this.options = { ...this.options, ...options };
+      if (options.logger) {
+        this.logger = options.logger;
+      } else if (options.debug && !this.options.logger) {
+        this.logger = (msg, ...args) => console.log(`[TikFinity]`, msg, ...args);
+      }
+    }
+
+    this.logger(LOG_MESSAGES.WEBVIEW.STARTED);
 
     const baseScript = path.join(getBaseDir(), PATHS.TIKFINITY_WEBVIEW_TS);
     const webviewScriptPath = await Bun.file(baseScript).exists()
@@ -59,7 +78,7 @@ export class TikFinityClient extends EventEmitter {
             if (line.includes(TIKTOK_CONSTANTS.PAYLOAD_PREFIX)) {
               payload = line.split(TIKTOK_CONSTANTS.PAYLOAD_PREFIX)[1].trim();
             } else if (line.trim()) {
-              console.log(TIKTOK_CONSTANTS.EVENT_MESSAGE, line.trim());
+              this.logger(TIKTOK_CONSTANTS.EVENT_MESSAGE, line.trim());
             }
           }
           
@@ -77,11 +96,17 @@ export class TikFinityClient extends EventEmitter {
 
           connectWS(payload, (message) => {
             this.handleMessage(message);
+          }, {
+            reconnect: this.options.autoReconnect ?? true,
+            maxReconnectAttempts: this.options.maxReconnectAttempts,
+            reconnectDelay: this.options.reconnectDelay,
+            maxReconnectDelay: this.options.maxReconnectDelay,
+            logger: this.logger,
           }).then((ws) => {
             this.wsConnection = ws;
           });
         } else {
-            console.log(TIKTOK_CONSTANTS.EVENT_MESSAGE, output.trim());
+            this.logger(TIKTOK_CONSTANTS.EVENT_MESSAGE, output.trim());
         }
       });
     }
@@ -93,7 +118,7 @@ export class TikFinityClient extends EventEmitter {
     }
 
     this.webviewProcess.on("close", (code) => {
-      console.log(LOG_MESSAGES.WEBVIEW.CLOSED, code);
+      this.logger(LOG_MESSAGES.WEBVIEW.CLOSED, code);
       this.webviewProcess = null;
     });
 
