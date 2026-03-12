@@ -183,7 +183,6 @@ export const PATHS = {
   SCRIPTS_DIR: "scripts",
   OUTPUT_DIR: "./output",
   TIKFINITY_WEBVIEW_TS: "scripts/tikfinity-webview.ts",
-  TIKFINITY_WEBVIEW_JS: "scripts/tikfinity-webview.js",
 } as const;
 
 // ============================================================================

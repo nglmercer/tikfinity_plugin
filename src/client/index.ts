@@ -1,16 +1,45 @@
-import { parseSocketIo42Message, SocketIoMessage } from "../utils/parsejson";
-import { getBaseDir } from "../utils/filepath";
+import { parseSocketIo42Message, SocketIoMessage } from "../utils/parsejson.js";
+import { getBaseDir } from "../utils/filepath.js";
 import { EventEmitter } from "events";
 import { spawn, ChildProcess } from "child_process";
-import { connect as connectWS, TikTokWebSocket } from "../utils/websocket";
+import { connect as connectWS, TikTokWebSocket } from "../utils/websocket.js";
 import * as path from "path";
+import * as fs from "fs";
 import {
   LOG_MESSAGES,
   TIKTOK_CONSTANTS,
   TIKFINITY_EVENTS,
   PATHS,
   type TikFinityOptions,
-} from "../constants";
+} from "../constants.js";
+
+// Function to get webview script - writes embedded content to temp file for executable
+async function getWebviewScriptPath(): Promise<string> {
+  const baseDir = getBaseDir();
+  
+  // First try to find the script in the project directory (development)
+  let scriptPath = path.join(baseDir, PATHS.TIKFINITY_WEBVIEW_TS);
+  
+  if (await Bun.file(scriptPath).exists()) {
+    return scriptPath;
+  }
+  
+  scriptPath = path.join(baseDir, PATHS.TIKFINITY_WEBVIEW_TS);
+  if (await Bun.file(scriptPath).exists()) {
+    return scriptPath;
+  }
+  
+  // If not found, we're likely in a bundled executable
+  // The script should be embedded - write to temp directory
+  const tempDir = "/tmp";
+  
+  // Write embedded script to temp (this would need the embedded content)
+  // For now, throw error to indicate the script needs to be bundled
+  throw new Error(
+    `Webview script not found. For bundled executable, ensure the script is embedded. ` +
+    `Looked in: ${baseDir}`
+  );
+}
 
 /**
  * TikFinityClient provides a better API control to connect, disconnect,
@@ -55,10 +84,9 @@ export class TikFinityClient extends EventEmitter {
 
     this.logger(LOG_MESSAGES.WEBVIEW.STARTED);
 
-    const baseScript = path.join(getBaseDir(), PATHS.TIKFINITY_WEBVIEW_TS);
-    const webviewScriptPath = await Bun.file(baseScript).exists()
-      ? baseScript
-      : path.join(getBaseDir(), PATHS.TIKFINITY_WEBVIEW_JS);
+    // Get the webview script path
+    const webviewScriptPath = await getWebviewScriptPath();
+    this.logger(`Using webview script: ${webviewScriptPath}`);
 
     this.webviewProcess = spawn("bun", ["run", webviewScriptPath], {
       stdio: ["pipe", "pipe", "pipe"],

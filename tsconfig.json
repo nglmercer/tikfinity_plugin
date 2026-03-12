@@ -1,10 +1,6 @@
 {
   "compilerOptions": {
-    // Environment setup - change target for specific Node.js version
-    // "ES2020" = Node.js 12+
-    // "ES2021" = Node.js 15+
-    // "ES2022" = Node.js 16+
-    // "ESNext" = Latest (Node.js 18+)
+    // Environment setup & latest features
     "lib": ["ESNext"],
     "target": "ESNext",
     "module": "nodenext",
