@@ -1,52 +1,94 @@
 import { definePlugin, type PluginContext } from "bun_plugins";
-import * as path from "path";
-import { parseSocketIo42Message, SocketIoMessage } from "./utils/parsejson";
-import { getBaseDir } from "./utils/filepath";
 import {
   LOG_MESSAGES,
-  TIKTOK_CONSTANTS,
-  PATHS,
   PLATFORMS,
+  TIKFINITY_EVENTS,
 } from "../src/constants";
 import { TikFinityClient } from "./client";
 
 // Global instance to be used by the plugin
 const client = new TikFinityClient();
 
+// Event handler reference for cleanup
+let eventHandler: ((payload: unknown) => void) | null = null;
+
+export { TikFinityClient };
+export const tikfinityClient = client;
+
 export default definePlugin({
   name: "tikfinity",
   version: "1.0.0",
   onLoad: async (context: PluginContext) => {
-    client.on("event", (payload) => {
-      if (context && typeof context.emit === "function") {
-        context.emit(PLATFORMS.TIKTOK, payload);
+    const { emit, log } = context;
+    log.info(LOG_MESSAGES.PLUGIN.LOADING);
+    // Set up event handler
+    eventHandler = (payload: unknown) => {
+      if (emit && typeof emit === "function") {
+        emit(PLATFORMS.TIKTOK, payload);
       } else {
         console.log(`[${PLATFORMS.TIKTOK}]`, payload);
       }
-    });
-
+    };
+    
+    client.on(TIKFINITY_EVENTS.EVENT, eventHandler);
     await client.connect();
+  },
+  onReload: async (context: PluginContext) => {
+    const { log, emit } = context;
+    log.info(LOG_MESSAGES.PLUGIN.RELOADING);
+    
+    // Remove old event handler
+    if (eventHandler) {
+      client.off(TIKFINITY_EVENTS.EVENT, eventHandler);
+    }
+    
+    // Reset client state (keep webview alive, remove listeners)
+    client.reset();
+    
+    // Re-setup event handler
+    eventHandler = (payload: unknown) => {
+      if (emit && typeof emit === "function") {
+        emit(PLATFORMS.TIKTOK, payload);
+      } else {
+        console.log(`[${PLATFORMS.TIKTOK}]`, payload);
+      }
+    };
+    
+    client.on(TIKFINITY_EVENTS.EVENT, eventHandler);
+    
+    // Reinitialize (reconnect WebSocket or start fresh)
+    await client.reinitialize();
   },
   onUnload: () => {
     console.log(LOG_MESSAGES.WEBVIEW.ON_UNLOAD);
+    if (eventHandler) {
+      client.off(TIKFINITY_EVENTS.EVENT, eventHandler);
+      eventHandler = null;
+    }
     client.clean();
   },
 });
 
 if (import.meta.main) {
-  client.on("event", (payload) => {
-    if (payload.eventName === 'chat') {
-      console.log(payload.data.comment);
+  client.on(TIKFINITY_EVENTS.EVENT, (payload: unknown) => {
+    const p = payload as { eventName?: string; data?: { comment?: string } };
+    if (p?.eventName === TIKFINITY_EVENTS.CHAT && p?.data?.comment) {
+      console.log(p.data.comment);
     }
-    return
-    console.log(`[${PLATFORMS.TIKTOK} Event]:`, typeof payload);
+    console.log(`[${PLATFORMS.TIKTOK} Event]:`, p?.eventName);
   });
   
   // Test methods on initialization
-  client.connect().catch(console.error);
-  // test clean
-  // setTimeout(() => {
-  //   console.log("Cleaning TikFinity...");
-  //   client.clean();
-  // }, 15000);
+  console.log('Connecting...');
+  await client.connect().catch(console.error);
+  
+  // Test disconnect/reconnect cycle after 25 seconds
+  await new Promise(resolver => setTimeout(resolver, 25000));
+  console.log('Disconnecting...');
+  client.disconnect();
+  
+  // Wait 5 seconds then reconnect (uses existing payload + webview)
+  await new Promise(resolver => setTimeout(resolver, 5000));
+  console.log('Reconnecting with existing payload...');
+  client.reconnect();
 }

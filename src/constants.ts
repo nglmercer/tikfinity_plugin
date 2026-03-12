@@ -60,6 +60,7 @@ export const TIKTOK_CONSTANTS = {
   WEBSOCKET_URL: "wss://tikfinity-cws-04.zerody.one/socket.io/",
   WEBSOCKET_PARAMS: "?EIO=4&transport=websocket",
   PAYLOAD_PREFIX: "TikFinity_PAYLOAD:",
+  EVENT_PREFIX: "TikFinity_EVENT:",
   EVENT_LOGGED: "tikfinity_logged",
   EVENT_MESSAGE: "tikfinity_msg",
   ENGINE_IO_MESSAGE: "40",
@@ -80,6 +81,10 @@ export const LOG_MESSAGES = {
     STARTED: "started webview process",
     CLOSING: "closing webview process",
   },
+  PLUGIN: {
+    LOADING: "loading tikfinity plugin...",
+    RELOADING: "reloading tikfinity plugin...",
+  },
   WEBSOCKET: {
     ALREADY_OPEN: "ws already open",
     OPEN: "ws open",
@@ -97,6 +102,11 @@ export const LOG_MESSAGES = {
   TIKFINITY: {
     CONNECTION_EXISTS: "Existing connection detected, updating channel...",
     CLOSING_WS: "Closing WebSocket connection...",
+    RESETTING: "Resetting TikFinity client for reload...",
+    RECONNECTING_EXISTING: "Reconnecting with existing payload...",
+    RECONNECTING_FRESH: "No existing payload, starting fresh connection...",
+    RECONNECTING: "Reconnecting TikFinity...",
+    CLOSING_FOR_PAYLOAD: "Closing previous WS connection for new payload...",
   },
   PLAYLIST: {
     OPERATION_IN_PROGRESS: "Operation in progress, skipping duplicate call",
@@ -216,6 +226,15 @@ export const EVENTS = {
   TRACK_START: "trackStart",
   TRACK_END: "trackEnd",
   PLAYLIST_END: "playlistEnd",
+} as const;
+
+// ============================================================================
+// TikFinity Event Names
+// ============================================================================
+
+export const TIKFINITY_EVENTS = {
+  EVENT: "event",
+  CHAT: "chat",
 } as const;
 
 // ============================================================================

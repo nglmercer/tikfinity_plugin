@@ -7,6 +7,7 @@ import * as path from "path";
 import {
   LOG_MESSAGES,
   TIKTOK_CONSTANTS,
+  TIKFINITY_EVENTS,
   PATHS,
 } from "../constants";
 
@@ -41,7 +42,7 @@ export class TikFinityClient extends EventEmitter {
       : path.join(getBaseDir(), PATHS.TIKFINITY_WEBVIEW_JS);
 
     this.webviewProcess = spawn("bun", ["run", webviewScriptPath], {
-      stdio: ["ignore", "pipe", "pipe"],
+      stdio: ["pipe", "pipe", "pipe"],
       shell: true,
       detached: false,
     });
@@ -69,7 +70,7 @@ export class TikFinityClient extends EventEmitter {
           this.currentPayload = payload;
 
           if (this.wsConnection) {
-            console.log("Closing previous WS connection for new payload...");
+            console.log(LOG_MESSAGES.TIKFINITY.CLOSING_FOR_PAYLOAD);
             this.wsConnection.disconnect();
             this.wsConnection = null;
           }
@@ -117,7 +118,20 @@ export class TikFinityClient extends EventEmitter {
     const eventData = data?.data || message;
 
     // Emit standard event
-    this.emit("event", { eventName, data: eventData });
+    this.emit(TIKFINITY_EVENTS.EVENT, { eventName, data: eventData });
+    
+    // Send event to webview for bidirectional communication
+    this.sendEventToWebview(eventName, eventData);
+  }
+
+  /**
+   * Sends an event to the webview for bidirectional communication.
+   */
+  private sendEventToWebview(eventName: string, data: unknown): void {
+    if (this.webviewProcess?.stdin) {
+      const eventPayload = JSON.stringify({ eventName, data });
+      this.webviewProcess.stdin?.write(`${TIKTOK_CONSTANTS.EVENT_PREFIX}${eventPayload}\n`);
+    }
   }
 
   /**
@@ -147,10 +161,40 @@ export class TikFinityClient extends EventEmitter {
   }
 
   /**
+   * Resets the client state for reload: disconnects WebSocket and removes listeners,
+   * but keeps the webview process alive for reconnection.
+   */
+  public reset(): void {
+    console.log(LOG_MESSAGES.TIKFINITY.RESETTING);
+    this.disconnect();
+    this.removeAllListeners();
+    // Keep webviewProcess and currentPayload for reconnection
+  }
+
+  /**
+   * Reinitializes after reset: reconnects using existing payload or starts fresh.
+   */
+  public async reinitialize(): Promise<void> {
+    if (this.currentPayload) {
+      // Reconnect with existing payload
+      console.log(LOG_MESSAGES.TIKFINITY.RECONNECTING_EXISTING);
+      connectWS(this.currentPayload, (message) => {
+        this.handleMessage(message);
+      }).then((ws) => {
+        this.wsConnection = ws;
+      });
+    } else {
+      // No existing payload, need to connect fresh
+      console.log(LOG_MESSAGES.TIKFINITY.RECONNECTING_FRESH);
+      await this.connect();
+    }
+  }
+
+  /**
    * Safely reconnects using the current payload, without killing the webview.
    */
   public reconnect(): void {
-    console.log("Reconnecting TikFinity...");
+    console.log(LOG_MESSAGES.TIKFINITY.RECONNECTING);
     this.disconnect();
     
     if (this.currentPayload) {
