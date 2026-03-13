@@ -1,5 +1,5 @@
 import { parseSocketIo42Message, SocketIoMessage } from "../utils/parsejson.js";
-import { getBaseDir } from "../utils/filepath.js";
+import { getBaseDir, findInRoots } from "../utils/filepath.js";
 import { EventEmitter } from "events";
 import { spawn, ChildProcess } from "child_process";
 import { connect as connectWS, TikTokWebSocket } from "../utils/websocket.js";
@@ -15,31 +15,41 @@ import {
 
 // Function to get webview script - writes embedded content to temp file for executable
 async function getWebviewScriptPath(): Promise<string> {
+  const scriptName = path.basename(PATHS.TIKFINITY_WEBVIEW_TS);
+  const scriptNameJs = scriptName.replace(/\.ts$/, '.js');
+  
+  const candidates = [
+    `scripts/${scriptNameJs}`,
+    scriptNameJs,
+    PATHS.TIKFINITY_WEBVIEW_TS,
+    scriptName,
+    // Also try relative to the current module directory in case we're deep in dist or src
+    (() => {
+        try {
+            // @ts-ignore
+            const currentDir = import.meta.dir;
+            if (currentDir) return path.join(currentDir, '..', '..', PATHS.TIKFINITY_WEBVIEW_TS);
+        } catch(e) {}
+        return "";
+    })()
+  ].filter(Boolean);
+
+
+  const foundPath = await findInRoots(candidates);
+
+  if (foundPath) {
+    return foundPath;
+  }
+
   const baseDir = getBaseDir();
-  
-  // First try to find the script in the project directory (development)
-  let scriptPath = path.join(baseDir, PATHS.TIKFINITY_WEBVIEW_TS);
-  
-  if (await Bun.file(scriptPath).exists()) {
-    return scriptPath;
-  }
-  
-  scriptPath = path.join(baseDir, PATHS.TIKFINITY_WEBVIEW_TS);
-  if (await Bun.file(scriptPath).exists()) {
-    return scriptPath;
-  }
-  
-  // If not found, we're likely in a bundled executable
-  // The script should be embedded - write to temp directory
-  const tempDir = "/tmp";
-  
-  // Write embedded script to temp (this would need the embedded content)
-  // For now, throw error to indicate the script needs to be bundled
   throw new Error(
-    `Webview script not found. For bundled executable, ensure the script is embedded. ` +
-    `Looked in: ${baseDir}`
+    `Webview script not found. For bundled executable, ensure 'scripts/tikfinity-webview.ts' is included.\n` +
+    `Looked for these files:\n${candidates.map(c => `  - ${c}`).join('\n')}\n` +
+    `Base directory identified as: ${baseDir}`
   );
 }
+
+
 
 /**
  * TikFinityClient provides a better API control to connect, disconnect,
