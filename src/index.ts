@@ -69,13 +69,20 @@ export default definePlugin({
     // Reinitialize (reconnect WebSocket or start fresh)
     await client.reinitialize();
   },
-  onUnload: () => {
+  onUnload: async () => {
     console.log(LOG_MESSAGES.WEBVIEW.ON_UNLOAD);
+    
+    // Clean up event handler first (synchronous, fast)
     if (eventHandler) {
       client.off(TIKFINITY_EVENTS.EVENT, eventHandler);
       eventHandler = null;
     }
+    
+    // Clean up client - this will kill the webview process
     client.clean();
+    
+    // Small delay to ensure process termination
+    await new Promise(resolve => setTimeout(resolve, 200));
   },
 });
 
@@ -86,7 +93,7 @@ if (import.meta.main) {
     maxReconnectAttempts: 5,
     reconnectDelay: 2000,
     debug: true,
-    logger: (msg, ...args) => console.log(`[Custom]`, msg, ...args),
+    logger: (msg: string, ...args: any[]) => console.log(`[Custom]`, msg, ...args),
   });
   
   customClient.on(TIKFINITY_EVENTS.EVENT, (payload: unknown) => {
@@ -102,12 +109,15 @@ if (import.meta.main) {
   await customClient.connect().catch(console.error);
   
   // Test disconnect/reconnect cycle after 25 seconds
-  await new Promise(resolver => setTimeout(resolver, 25000));
+  await new Promise(resolver => setTimeout(resolver, 20000));
   console.log('Disconnecting...');
   customClient.disconnect();
   
   // Wait 5 seconds then reconnect (uses existing payload + webview)
-  await new Promise(resolver => setTimeout(resolver, 5000));
+/*   await new Promise(resolver => setTimeout(resolver, 5000));
   console.log('Reconnecting with existing payload...');
-  customClient.reconnect();
+  customClient.reconnect(); */
+  await new Promise(resolver => setTimeout(resolver, 1000));
+  console.log('Cleaning up...');
+  customClient.clean();
 }

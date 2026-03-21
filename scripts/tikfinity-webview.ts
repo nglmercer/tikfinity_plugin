@@ -121,12 +121,20 @@ async function startWebview() {
   });
 
   // Listen for events from parent process via stdin
+  const EXIT_COMMAND = 'TikFinity_EXIT';
   try {
     process.stdin.resume();
     process.stdin.setEncoding("utf8");
     
     process.stdin.on("data", (chunk) => {
       const input = chunk.toString();
+      
+      // Check for exit command first
+      if (input.startsWith(EXIT_COMMAND)) {
+        console.log('Received exit command, closing webview...');
+        app.exit();
+        return;
+      }
       
       if (input.startsWith(EVENT_PREFIX)) {
         const eventData = input.replace(EVENT_PREFIX, "").trim();

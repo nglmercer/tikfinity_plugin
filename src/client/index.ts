@@ -216,7 +216,20 @@ export class TikFinityClient extends EventEmitter {
     this.disconnect();
     if (this.webviewProcess) {
       console.log(LOG_MESSAGES.WEBVIEW.CLOSING);
-      this.webviewProcess.kill();
+      
+      try {
+        // First, try to gracefully close by writing to stdin
+        // The webview script listens for commands
+        if (this.webviewProcess.stdin) {
+          this.webviewProcess.stdin.write('TikFinity_EXIT\n');
+        }
+        
+        // Try to kill gracefully first
+      } catch (e) {
+        this.webviewProcess.kill('SIGTERM');
+        this.webviewProcess.kill('SIGKILL');
+      }
+      
       this.webviewProcess = null;
     }
     this.currentPayload = null;
