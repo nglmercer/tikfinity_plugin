@@ -1,0 +1,9 @@
+- enabled: true
+  priority: 0
+  on: share
+  id: daa4e10a-883c-4a20-a827-f4d1a5e5384a
+  description: Log when share event is triggered from tiktok
+  do:
+    type: log
+    params:
+      message: TIKTOK_EVENT share triggered

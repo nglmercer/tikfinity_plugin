@@ -1,0 +1,9 @@
+- enabled: true
+  priority: 0
+  on: imDelete
+  id: 2989eed0-239f-4f0d-9e72-1df5e86749ea
+  description: Log when imDelete event is triggered from tiktok
+  do:
+    type: log
+    params:
+      message: TIKTOK_EVENT imDelete triggered

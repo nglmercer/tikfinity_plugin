@@ -1,0 +1,9 @@
+- enabled: true
+  priority: 0
+  on: linkMessage
+  id: 1f437428-9d6f-433d-8f3a-e9bd3ae8ebbb
+  description: Log when linkMessage event is triggered from tiktok
+  do:
+    type: log
+    params:
+      message: TIKTOK_EVENT linkMessage triggered

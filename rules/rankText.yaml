@@ -1,0 +1,9 @@
+- enabled: true
+  priority: 0
+  on: rankText
+  id: fdb7e063-2230-416e-9367-473f8e05cbbf
+  description: Log when rankText event is triggered from tiktok
+  do:
+    type: log
+    params:
+      message: TIKTOK_EVENT rankText triggered

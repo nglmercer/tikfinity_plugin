@@ -1,0 +1,9 @@
+- enabled: true
+  priority: 0
+  on: like
+  id: 5b5eb72f-2290-4269-a4cd-b6dab8d5c0c7
+  description: Log when like event is triggered from tiktok
+  do:
+    type: log
+    params:
+      message: TIKTOK_EVENT like triggered

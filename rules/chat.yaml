@@ -1,0 +1,9 @@
+- enabled: true
+  priority: 0
+  on: chat
+  id: f10a1d57-387f-4e10-96fb-023d479f8928
+  description: Log when chat event is triggered from tiktok
+  do:
+    type: log
+    params:
+      message: TIKTOK_EVENT chat triggered

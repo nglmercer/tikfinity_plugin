@@ -19,6 +19,8 @@
     "arktype": "^2.1.29",
     "bun_plugins": "^1.2.5",
     "cheerio": "^1.2.0",
+    "tiktok-live-connector": "^2.1.1-beta1",
+    "trigger_system": "^1.3.1",
     "webview-napi": "^0.1.9"
   }
 }

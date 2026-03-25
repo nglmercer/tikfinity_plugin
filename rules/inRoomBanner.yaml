@@ -1,0 +1,9 @@
+- enabled: true
+  priority: 0
+  on: inRoomBanner
+  id: ba68b24b-817f-488c-8d3c-622fdd398e80
+  description: Log when inRoomBanner event is triggered from tiktok
+  do:
+    type: log
+    params:
+      message: TIKTOK_EVENT inRoomBanner triggered

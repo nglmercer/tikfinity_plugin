@@ -1,0 +1,9 @@
+- enabled: true
+  priority: 0
+  on: roomVerify
+  id: 8b373299-0321-4b45-952e-52875628d552
+  description: Log when roomVerify event is triggered from tiktok
+  do:
+    type: log
+    params:
+      message: TIKTOK_EVENT roomVerify triggered

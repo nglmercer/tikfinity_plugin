@@ -1,0 +1,9 @@
+- enabled: true
+  priority: 0
+  on: linkLayer
+  id: e86b9ceb-7de2-4bc5-ae7a-d18554493f5d
+  description: Log when linkLayer event is triggered from tiktok
+  do:
+    type: log
+    params:
+      message: TIKTOK_EVENT linkLayer triggered

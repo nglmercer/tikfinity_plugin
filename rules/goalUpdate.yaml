@@ -1,0 +1,9 @@
+- enabled: true
+  priority: 0
+  on: goalUpdate
+  id: b41e3bec-b31d-4919-b515-fafea93e5c35
+  description: Log when goalUpdate event is triggered from tiktok
+  do:
+    type: log
+    params:
+      message: TIKTOK_EVENT goalUpdate triggered

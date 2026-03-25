@@ -1,0 +1,9 @@
+- enabled: true
+  priority: 0
+  on: rankUpdate
+  id: 05076c66-eaf7-4dd2-b834-8ec0948b80ff
+  description: Log when rankUpdate event is triggered from tiktok
+  do:
+    type: log
+    params:
+      message: TIKTOK_EVENT rankUpdate triggered

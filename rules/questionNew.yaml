@@ -1,0 +1,9 @@
+- enabled: true
+  priority: 0
+  on: questionNew
+  id: 03649771-2fd1-4c20-8899-ca4c259be7a9
+  description: Log when questionNew event is triggered from tiktok
+  do:
+    type: log
+    params:
+      message: TIKTOK_EVENT questionNew triggered

@@ -1,0 +1,9 @@
+- enabled: true
+  priority: 0
+  on: hourlyRank
+  id: cc5d0eae-3667-4ecb-b3b3-ecfe0bd044b6
+  description: Log when hourlyRank event is triggered from tiktok
+  do:
+    type: log
+    params:
+      message: TIKTOK_EVENT hourlyRank triggered

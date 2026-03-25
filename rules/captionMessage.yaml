@@ -1,0 +1,9 @@
+- enabled: true
+  priority: 0
+  on: captionMessage
+  id: 351164e1-459a-49a4-bb39-50866b225834
+  description: Log when captionMessage event is triggered from tiktok
+  do:
+    type: log
+    params:
+      message: TIKTOK_EVENT captionMessage triggered

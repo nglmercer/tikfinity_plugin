@@ -1,0 +1,9 @@
+- enabled: true
+  priority: 0
+  on: roomUser
+  id: 6065a5dd-cd5f-4fb1-a7ad-352a87857697
+  description: Log when roomUser event is triggered from tiktok
+  do:
+    type: log
+    params:
+      message: TIKTOK_EVENT roomUser triggered

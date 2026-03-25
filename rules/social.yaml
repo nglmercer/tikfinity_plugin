@@ -1,0 +1,9 @@
+- enabled: true
+  priority: 0
+  on: social
+  id: 67224c84-c9fd-4639-a4d9-f15d80708bef
+  description: Log when social event is triggered from tiktok
+  do:
+    type: log
+    params:
+      message: TIKTOK_EVENT social triggered

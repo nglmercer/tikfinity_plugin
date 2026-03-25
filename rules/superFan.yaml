@@ -1,0 +1,9 @@
+- enabled: true
+  priority: 0
+  on: superFan
+  id: a038253e-c543-4612-8fae-ba3e92217d5c
+  description: Log when superFan event is triggered from tiktok
+  do:
+    type: log
+    params:
+      message: TIKTOK_EVENT superFan triggered

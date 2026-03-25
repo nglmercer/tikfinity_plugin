@@ -1,0 +1,9 @@
+- enabled: true
+  priority: 0
+  on: msgDetect
+  id: 993da616-c043-4711-b570-3dcc174f4c74
+  description: Log when msgDetect event is triggered from tiktok
+  do:
+    type: log
+    params:
+      message: TIKTOK_EVENT msgDetect triggered

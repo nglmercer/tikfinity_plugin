@@ -1,0 +1,9 @@
+- enabled: true
+  priority: 0
+  on: linkMicFanTicketMethod
+  id: 7d8b6fba-79c8-4e32-8fff-e94d109ff9e1
+  description: Log when linkMicFanTicketMethod event is triggered from tiktok
+  do:
+    type: log
+    params:
+      message: TIKTOK_EVENT linkMicFanTicketMethod triggered

@@ -1,0 +1,9 @@
+- enabled: true
+  priority: 0
+  on: linkMicBattlePunishFinish
+  id: bd384549-7aa9-403f-b233-29731a2151d7
+  description: Log when linkMicBattlePunishFinish event is triggered from tiktok
+  do:
+    type: log
+    params:
+      message: TIKTOK_EVENT linkMicBattlePunishFinish triggered

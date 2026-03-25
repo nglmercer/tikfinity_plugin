@@ -1,0 +1,9 @@
+- enabled: true
+  priority: 0
+  on: unauthorizedMember
+  id: 24d7faba-2929-4e76-a51e-a13f3900f5b4
+  description: Log when unauthorizedMember event is triggered from tiktok
+  do:
+    type: log
+    params:
+      message: TIKTOK_EVENT unauthorizedMember triggered

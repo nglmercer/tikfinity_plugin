@@ -1,0 +1,9 @@
+- enabled: true
+  priority: 0
+  on: pollMessage
+  id: 2ccc1747-0935-47ea-9432-f4dfd9757eeb
+  description: Log when pollMessage event is triggered from tiktok
+  do:
+    type: log
+    params:
+      message: TIKTOK_EVENT pollMessage triggered

@@ -1,0 +1,9 @@
+- enabled: true
+  priority: 0
+  on: oecLiveShopping
+  id: 2f5e0bc7-0557-4f80-850f-08b9e0f07511
+  description: Log when oecLiveShopping event is triggered from tiktok
+  do:
+    type: log
+    params:
+      message: TIKTOK_EVENT oecLiveShopping triggered

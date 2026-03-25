@@ -1,0 +1,9 @@
+- enabled: true
+  priority: 0
+  on: member
+  id: d0d963bf-296e-45a1-a2ad-91866483dd64
+  description: Log when member event is triggered from tiktok
+  do:
+    type: log
+    params:
+      message: TIKTOK_EVENT member triggered

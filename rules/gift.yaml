@@ -1,0 +1,9 @@
+- enabled: true
+  priority: 0
+  on: gift
+  id: a650ab7b-3f3f-4c12-a6ea-72090fa2af9a
+  description: Log when gift event is triggered from tiktok
+  do:
+    type: log
+    params:
+      message: TIKTOK_EVENT gift triggered

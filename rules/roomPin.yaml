@@ -1,0 +1,9 @@
+- enabled: true
+  priority: 0
+  on: roomPin
+  id: a5339f4d-6d05-4cf6-a4c4-29d9bdb3dfc2
+  description: Log when roomPin event is triggered from tiktok
+  do:
+    type: log
+    params:
+      message: TIKTOK_EVENT roomPin triggered

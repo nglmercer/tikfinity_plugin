@@ -1,0 +1,9 @@
+- enabled: true
+  priority: 0
+  on: follow
+  id: 187f895f-0503-433d-b0f2-b64c5db4a3c1
+  description: Log when follow event is triggered from tiktok
+  do:
+    type: log
+    params:
+      message: TIKTOK_EVENT follow triggered

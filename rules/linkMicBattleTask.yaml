@@ -1,0 +1,9 @@
+- enabled: true
+  priority: 0
+  on: linkMicBattleTask
+  id: a6166895-c55a-475a-93ed-89b26106f7de
+  description: Log when linkMicBattleTask event is triggered from tiktok
+  do:
+    type: log
+    params:
+      message: TIKTOK_EVENT linkMicBattleTask triggered

@@ -1,0 +1,9 @@
+- enabled: true
+  priority: 0
+  on: linkMicMethod
+  id: 63a9117b-27ff-4990-b2f8-6952ac096e9f
+  description: Log when linkMicMethod event is triggered from tiktok
+  do:
+    type: log
+    params:
+      message: TIKTOK_EVENT linkMicMethod triggered

@@ -1,0 +1,9 @@
+- enabled: true
+  priority: 0
+  on: barrage
+  id: c16c7c5d-a1cf-4066-8506-c8b05b12c0b3
+  description: Log when barrage event is triggered from tiktok
+  do:
+    type: log
+    params:
+      message: TIKTOK_EVENT barrage triggered

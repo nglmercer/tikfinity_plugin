@@ -1,0 +1,9 @@
+- enabled: true
+  priority: 0
+  on: envelope
+  id: 5305e01a-76fb-40b9-a167-bd5e1a3c98ac
+  description: Log when envelope event is triggered from tiktok
+  do:
+    type: log
+    params:
+      message: TIKTOK_EVENT envelope triggered

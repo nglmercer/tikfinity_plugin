@@ -1,0 +1,9 @@
+- enabled: true
+  priority: 0
+  on: emote
+  id: 8b323ce1-329f-4432-884b-ba57a2589af7
+  description: Log when emote event is triggered from tiktok
+  do:
+    type: log
+    params:
+      message: TIKTOK_EVENT emote triggered

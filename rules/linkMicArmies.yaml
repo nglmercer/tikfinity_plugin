@@ -1,0 +1,9 @@
+- enabled: true
+  priority: 0
+  on: linkMicArmies
+  id: 32e631d1-b56e-498c-903f-2893314bae73
+  description: Log when linkMicArmies event is triggered from tiktok
+  do:
+    type: log
+    params:
+      message: TIKTOK_EVENT linkMicArmies triggered

@@ -1,0 +1,9 @@
+- enabled: true
+  priority: 0
+  on: streamEnd
+  id: 3bc618da-a9a8-4de6-a49f-6ce1e5672236
+  description: Log when streamEnd event is triggered from tiktok
+  do:
+    type: log
+    params:
+      message: TIKTOK_EVENT streamEnd triggered
