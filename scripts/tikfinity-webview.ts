@@ -78,10 +78,11 @@ async function startWebview() {
     url: TIKFINITY_URL,
     enableDevtools: true,
   });
-  if (process && process.env.NODE_ENV === "development") {
-    webview.openDevtools();
-  }
-  webview.onIpcMessage((_e, message) => {
+    /*   if (process && process.env.NODE_ENV === "development") {
+        webview.openDevtools();
+      }
+    */
+    webview.onIpcMessage((_e, message) => {
     // Convert the message body Buffer to text
     const payload = message.toString();
 

@@ -234,6 +234,7 @@ export const EVENTS = {
 export const TIKFINITY_EVENTS = {
   EVENT: "event",
   CHAT: "chat",
+  PAYLOAD: "payload",
 } as const;
 
 // ============================================================================

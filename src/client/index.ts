@@ -125,7 +125,7 @@ export class TikFinityClient extends EventEmitter {
           }
           
           this.currentPayload = payload;
-
+          this.emit(TIKFINITY_EVENTS.PAYLOAD, payload);
           if (this.wsConnection) {
             console.log(LOG_MESSAGES.TIKFINITY.CLOSING_FOR_PAYLOAD);
             this.wsConnection.disconnect();

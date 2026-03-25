@@ -1,11 +1,11 @@
-import { definePlugin, type PluginContext } from "bun_plugins";
+import { type IPlugin, type PluginContext } from "bun_plugins";
 import {
   LOG_MESSAGES,
   PLATFORMS,
   TIKFINITY_EVENTS,
   type TikFinityOptions,
-} from "../src/constants";
-import { TikFinityClient } from "./client";
+} from "./constants.js";
+import { TikFinityClient } from "./client/index.js";
 
 // Global instance to be used by the plugin
 const client = new TikFinityClient();
@@ -24,11 +24,16 @@ export function createTikFinityClient(options?: TikFinityOptions): TikFinityClie
   return new TikFinityClient(options);
 }
 
-export default definePlugin({
-  name: "tikfinity",
-  version: "1.0.0",
-  onLoad: async (context: PluginContext) => {
-    const { emit, log } = context;
+export class TikfinityPlugin implements IPlugin {
+  name: string = "tikfinity";
+  version: string = "1.0.0";
+  description: string = "TikFinity Plugin for TikTok";
+  defaultConfig? = {
+    reinitialize: true,
+    payload: null
+  };
+  async onLoad(context: PluginContext) {
+    const { emit, log,storage } = context;
     log.info(LOG_MESSAGES.PLUGIN.LOADING);
     
     // Set up event handler
@@ -41,10 +46,16 @@ export default definePlugin({
     };
     
     client.on(TIKFINITY_EVENTS.EVENT, eventHandler);
+    client.on(TIKFINITY_EVENTS.PAYLOAD, async (payload) => {
+      await storage.set(TIKFINITY_EVENTS.PAYLOAD, payload);
+      if (!this.defaultConfig || !payload) return;
+      this.defaultConfig.payload = payload;
+    });
     await client.connect();
-  },
-  onReload: async (context: PluginContext) => {
-    const { log, emit } = context;
+  }
+  
+  async onReload(context: PluginContext) {
+    const { log, emit,storage } = context;
     log.info(LOG_MESSAGES.PLUGIN.RELOADING);
     
     // Remove old event handler
@@ -67,9 +78,15 @@ export default definePlugin({
     client.on(TIKFINITY_EVENTS.EVENT, eventHandler);
     
     // Reinitialize (reconnect WebSocket or start fresh)
-    await client.reinitialize();
-  },
-  onUnload: async () => {
+    if (this.defaultConfig?.reinitialize) {
+      const payload = await storage.get(TIKFINITY_EVENTS.PAYLOAD);
+      if (!payload || payload !== this.defaultConfig.payload) {
+        await client.reinitialize();
+      }
+    }
+  }
+  
+  async onUnload() {
     console.log(LOG_MESSAGES.WEBVIEW.ON_UNLOAD);
     
     // Clean up event handler first (synchronous, fast)
@@ -83,8 +100,8 @@ export default definePlugin({
     
     // Small delay to ensure process termination
     await new Promise(resolve => setTimeout(resolve, 200));
-  },
-});
+  }
+}
 
 if (import.meta.main) {
   // Create client with custom options
