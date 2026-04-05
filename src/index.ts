@@ -26,10 +26,9 @@ export function createTikFinityClient(options?: TikFinityOptions): TikFinityClie
 declare const __APP_VERSION__: string;
 
 const requireVersion = __APP_VERSION__; // → "1.2.3" inlined como stringconsole.log(requireVersion)
-console.log(requireVersion)
 export class TikfinityPlugin implements IPlugin {
   name: string = "tikfinity";
-  version: string = "1.0.0";
+  version: string = requireVersion;
   description: string = "TikFinity Plugin for TikTok";
   defaultConfig? = {
     reinitialize: true,
