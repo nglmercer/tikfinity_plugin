@@ -12,11 +12,9 @@
   },
   "scripts": {
     "dev": "bun run src/index.ts",
-    "build": "bun build src/index.ts --outdir dist --target bun && bun build scripts/tikfinity-webview.ts --outdir dist/scripts --target bun",
-    "build:exe": "bun build --compile src/index.ts --outfile ./dist/tikfinity"
+    "build": "bun build src/index.ts --outdir dist --target=bun --entry-naming \"[dir]/pluginclaws.[ext]\" && bun build scripts/tikfinity-webview.ts --outdir dist/scripts --target=bun"
   },
   "dependencies": {
-    "arktype": "^2.1.29",
     "bun_plugins": "^1.2.5",
     "cheerio": "^1.2.0",
     "tiktok-live-connector": "^2.1.1-beta1",

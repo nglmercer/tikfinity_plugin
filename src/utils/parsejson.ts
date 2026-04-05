@@ -1,4 +1,3 @@
-import { type } from "arktype";
 import {
   ERROR_MESSAGES,
   TIKTOK_CONSTANTS,
@@ -34,19 +33,16 @@ export function parseSocketIo42Message<
   message: string,
   keys?: { event: E; data: D }
 ): ({ [K in E]: string } & { [K in D]: T }) | null {
-  // Validate the Socket.io protocol prefix
   if (!message || !message.startsWith(TIKTOK_CONSTANTS.SOCKET_IO_DATA_PREFIX)) {
     return null;
   }
 
   try {
-    // Extract and parse the JSON (skipping the "42")
     const parsed = JSON.parse(
       message.substring(TIKTOK_CONSTANTS.SOCKET_IO_DATA_PREFIX.length)
     );
 
     if (Array.isArray(parsed) && parsed.length >= 1) {
-      // Define the keys to use: provided ones or default SocketIoEvent ones
       const eventKey = keys?.event ?? ("eventName" as E);
       const dataKey = keys?.data ?? ("data" as D);
 
@@ -86,11 +82,8 @@ export function SocketIoMessage(message: string) {
   if (!message || message.length < 1) return null;
 
   const engineType = message[0];
-  // socketType only exists if engineType is '4' (MESSAGE)
   const socketType = engineType === SocketIoPacketType.MESSAGE ? message[1] : undefined;
 
-  // Determine where the real JSON begins
-  // If it's '42', the JSON starts at index 2. If it's '2' (PING), there's no JSON.
   const payloadOffset = engineType === SocketIoPacketType.MESSAGE ? 2 : 1;
   const payloadRaw = message.substring(payloadOffset);
 
@@ -130,37 +123,6 @@ export function parseJson<T = any>(jsonString: string): ParseResult<T> {
 }
 
 /**
- * Parses a JSON string and validates against an arktype schema
- * @param jsonString - JSON string to parse
- * @param schema - Arktype schema to validate
- * @returns ParseResult with the parse and validation result
- */
-export function parseJsonWithSchema<T = any>(
-  jsonString: string,
-  schema: ReturnType<typeof type<any>>
-): ParseResult<T> {
-  const parseResult = parseJson<T>(jsonString);
-
-  if (!parseResult.success) {
-    return parseResult;
-  }
-
-  const validation = schema(parseResult.data);
-
-  if (validation instanceof type.errors) {
-    return {
-      success: false,
-      error: validation.summary,
-    };
-  }
-
-  return {
-    success: true,
-    data: validation as T,
-  };
-}
-
-/**
  * Parses a JSON string that must be an array
  * @param jsonString - JSON string to parse
  * @returns ParseResult with the parsed array
@@ -177,42 +139,6 @@ export function parseJsonArray<T = any>(jsonString: string): ParseResult<T[]> {
       success: false,
       error: ERROR_MESSAGES.PARSE.NOT_AN_ARRAY,
     };
-  }
-
-  return {
-    success: true,
-    data: parseResult.data,
-  };
-}
-
-/**
- * Parses a JSON string that must be an array and validates against an arktype schema
- * @param jsonString - JSON string to parse
- * @param schema - Arktype schema to validate each element of the array
- * @returns ParseResult with the validated array
- */
-export function parseJsonArrayWithSchema<T = any>(
-  jsonString: string,
-  schema: ReturnType<typeof type<any>>
-): ParseResult<T[]> {
-  const parseResult = parseJsonArray<T>(jsonString);
-
-  if (!parseResult.success) {
-    return parseResult;
-  }
-
-  // Validate each element of the array
-  for (let i = 0; i < parseResult.data!.length; i++) {
-    const validation = schema(parseResult.data![i]);
-
-    if (validation instanceof type.errors) {
-      return {
-        success: false,
-        error: ERROR_MESSAGES.PARSE.ARRAY_ITEM(i, validation.summary),
-      };
-    }
-
-    parseResult.data![i] = validation as T;
   }
 
   return {
@@ -249,37 +175,6 @@ export function parseJsonObject<T = Record<string, any>>(
   return {
     success: true,
     data: parseResult.data,
-  };
-}
-
-/**
- * Parses a JSON string that must be an object and validates against an arktype schema
- * @param jsonString - JSON string to parse
- * @param schema - Arktype schema to validate the object
- * @returns ParseResult with the validated object
- */
-export function parseJsonObjectWithSchema<T = Record<string, any>>(
-  jsonString: string,
-  schema: ReturnType<typeof type<any>>
-): ParseResult<T> {
-  const parseResult = parseJsonObject<T>(jsonString);
-
-  if (!parseResult.success) {
-    return parseResult;
-  }
-
-  const validation = schema(parseResult.data);
-
-  if (validation instanceof type.errors) {
-    return {
-      success: false,
-      error: validation.summary,
-    };
-  }
-
-  return {
-    success: true,
-    data: validation as T,
   };
 }
 
@@ -334,7 +229,6 @@ export function parseJsonSafe<T = any>(
   }
 
   try {
-    // Validate max depth if specified
     if (options.strict && options.maxDepth !== undefined) {
       const depth = calculateJsonDepth(jsonString);
       if (depth > options.maxDepth) {
@@ -419,102 +313,3 @@ export function parseAndFormatJson(
     };
   }
 }
-
-/**
- * Creates an arktype schema for SocketIoEvent
- * @param dataTypeSchema - Optional schema for the data type
- * @returns Arktype schema for SocketIoEvent
- */
-export function createSocketIoEventSchema<T = any>(
-  dataTypeSchema?: ReturnType<typeof type<any>>
-) {
-  if (dataTypeSchema) {
-    return type({
-      eventName: "string",
-      data: dataTypeSchema,
-    });
-  }
-
-  return type({
-    eventName: "string",
-    data: "unknown",
-  });
-}
-
-/**
- * Parses a Socket.io 42 message with arktype schema validation
- * @param message - The raw socket string (e.g., '42["chat", {}]')
- * @param schema - Arktype schema to validate the data
- * @returns ParseResult with the validated event
- */
-export function parseSocketIo42MessageWithSchema<T = any>(
-  message: string,
-  schema?: ReturnType<typeof type<any>>
-): ParseResult<SocketIoEvent<T>> {
-  const parsed = parseSocketIo42Message<T>(message);
-
-  if (!parsed) {
-    return {
-      success: false,
-      error: ERROR_MESSAGES.PARSE.INVALID_SOCKET_IO,
-    };
-  }
-
-  const eventSchema = createSocketIoEventSchema(schema);
-  const validation = eventSchema(parsed);
-
-  if (validation instanceof type.errors) {
-    return {
-      success: false,
-      error: validation.summary,
-    };
-  }
-
-  return {
-    success: true,
-    data: validation as SocketIoEvent<T>,
-  };
-}
-
-/**
- * Utility types for arktype
- */
-export const ArktypeSchemas = {
-  /**
-   * Schema for non-empty strings
-   */
-  nonEmptyString: type("string > 0"),
-
-  /**
-   * Schema for emails
-   */
-  email: type("string.email"),
-
-  /**
-   * Schema for URLs
-   */
-  url: type("string.url"),
-
-  /**
-   * Schema for positive numbers
-   */
-  positiveNumber: type("number > 0"),
-
-  /**
-   * Schema for integer numbers
-   */
-  integer: type("number.integer"),
-
-  /**
-   * Schema for non-empty arrays
-   */
-  nonEmptyArray: type("unknown[] > 0"),
-
-  /**
-   * Schema for objects with required properties
-   */
-  requiredObject: (requiredKeys: string[]) =>
-    type({
-      ...Object.fromEntries(requiredKeys.map((key) => [key, "unknown"])),
-    }),
-};
