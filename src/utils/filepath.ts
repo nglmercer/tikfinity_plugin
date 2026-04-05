@@ -3,7 +3,7 @@ import * as path from "path";
 
 /**
  * Gets the base directory of the application.
- * It tries multiple strategies to find the root directory where 'scripts' or 'package.json' might exist.
+ * It tries multiple strategies to find the root directory where 'webview' or 'package.json' might exist.
  */
 function getBaseDir(): string {
     const candidates: string[] = [];
@@ -52,9 +52,9 @@ function getBaseDir(): string {
     // Remove duplicates and invalid paths
     const uniqueCandidates = [...new Set(candidates.filter(c => c && fs.existsSync(c)))];
 
-    // Priority 1: Look for a directory that contains the 'scripts' folder (where tikfinity-webview.ts lives)
+    // Priority 1: Look for a directory that contains the 'webview' folder (where tikfinity-webview.ts lives)
     for (const cand of uniqueCandidates) {
-        if (fs.existsSync(path.join(cand, 'scripts'))) {
+        if (fs.existsSync(path.join(cand, 'webview'))) {
             return cand;
         }
     }

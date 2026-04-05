@@ -19,7 +19,7 @@ async function getWebviewScriptPath(): Promise<string> {
   const scriptNameJs = scriptName.replace(/\.ts$/, '.js');
   
   const candidates = [
-    `scripts/${scriptNameJs}`,
+    `webview/${scriptNameJs}`,
     scriptNameJs,
     PATHS.TIKFINITY_WEBVIEW_TS,
     scriptName,
@@ -43,7 +43,7 @@ async function getWebviewScriptPath(): Promise<string> {
 
   const baseDir = getBaseDir();
   throw new Error(
-    `Webview script not found. For bundled executable, ensure 'scripts/tikfinity-webview.ts' is included.\n` +
+    `Webview script not found. For bundled executable, ensure 'webview/tikfinity-webview.ts' is included.\n` +
     `Looked for these files:\n${candidates.map(c => `  - ${c}`).join('\n')}\n` +
     `Base directory identified as: ${baseDir}`
   );

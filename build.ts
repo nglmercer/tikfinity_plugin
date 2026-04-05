@@ -15,8 +15,8 @@ await Promise.all([
 
   // Webview script build
   Bun.build({
-    entrypoints: ["scripts/tikfinity-webview.ts"],
-    outdir: "dist/scripts",
+    entrypoints: ["webview/tikfinity-webview.ts"],
+    outdir: "dist/webview",
     target: "bun",
     define: {
       __APP_VERSION__: JSON.stringify(version),

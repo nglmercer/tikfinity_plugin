@@ -180,9 +180,9 @@ export const ERROR_MESSAGES = {
 export const PATHS = {
   RULES_DIR: "rules",
   PLUGINS_DIR: "plugins",
-  SCRIPTS_DIR: "scripts",
+  SCRIPTS_DIR: "webview",
   OUTPUT_DIR: "./output",
-  TIKFINITY_WEBVIEW_TS: "scripts/tikfinity-webview.ts",
+  TIKFINITY_WEBVIEW_TS: "webview/tikfinity-webview.ts",
 } as const;
 
 // ============================================================================

@@ -11,8 +11,7 @@ To execute or build:
 ```json
   "scripts": {
     "dev": "bun run src/index.ts",
-    "build": "bun build src/index.ts --outdir dist --target bun && bun build scripts/tikfinity-webview.ts --outdir dist/scripts --target bun && cp -r scripts dist/",
-    "build:exe": "bun build --compile src/index.ts --outfile ./dist/tikfinity"
+    "build": "bun run build.ts"
   }
 ```
 
