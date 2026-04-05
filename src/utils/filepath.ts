@@ -20,11 +20,6 @@ function getBaseDir(): string {
             } catch (e) {}
         }
 
-        // @ts-ignore - CommonJS
-        if (!currentFilePath && typeof __filename !== 'undefined') {
-            currentFilePath = __filename;
-        }
-
         if (currentFilePath) {
             candidates.push(path.dirname(currentFilePath));
             // Also try parent directory as we might be in 'src' or 'dist'

@@ -3,6 +3,7 @@
   "module": "src/index.ts",
   "type": "module",
   "private": true,
+  "version": "1.0.1",
   "devDependencies": {
     "@types/bun": "^1.3.10",
     "@types/node": "^25.5.0"
@@ -12,7 +13,7 @@
   },
   "scripts": {
     "dev": "bun run src/index.ts",
-    "build": "bun build src/index.ts --outdir dist --target=bun --entry-naming \"[dir]/pluginclaws.[ext]\" && bun build scripts/tikfinity-webview.ts --outdir dist/scripts --target=bun"
+    "build": "bun run build.ts"
   },
   "dependencies": {
     "bun_plugins": "^1.2.5",

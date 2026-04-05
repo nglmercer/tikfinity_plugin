@@ -23,7 +23,10 @@ export type { TikFinityOptions };
 export function createTikFinityClient(options?: TikFinityOptions): TikFinityClient {
   return new TikFinityClient(options);
 }
+declare const __APP_VERSION__: string;
 
+const requireVersion = __APP_VERSION__; // → "1.2.3" inlined como stringconsole.log(requireVersion)
+console.log(requireVersion)
 export class TikfinityPlugin implements IPlugin {
   name: string = "tikfinity";
   version: string = "1.0.0";
@@ -105,10 +108,14 @@ export class TikfinityPlugin implements IPlugin {
 
 if (import.meta.main) {
   // Create client with custom options
+  const defaultTimes = {
+    reconnect: 30000,
+    disconnect: 5000,
+  }
   const customClient = new TikFinityClient({
     autoReconnect: true,
     maxReconnectAttempts: 5,
-    reconnectDelay: 2000,
+    reconnectDelay: defaultTimes.reconnect,
     debug: true,
     logger: (msg: string, ...args: any[]) => console.log(`[Custom]`, msg, ...args),
   });
@@ -126,7 +133,7 @@ if (import.meta.main) {
   await customClient.connect().catch(console.error);
   
   // Test disconnect/reconnect cycle after 25 seconds
-  await new Promise(resolver => setTimeout(resolver, 20000));
+  await new Promise(resolver => setTimeout(resolver, defaultTimes.reconnect));
   console.log('Disconnecting...');
   customClient.disconnect();
   
