@@ -1,18 +1,33 @@
 # browserapi
 
-To install dependencies:
+Cross-runtime compatible (Node.js, Bun, Deno) TikTok live interaction plugin.
+
+## Install dependencies
 
 ```bash
+npm install
+# or
 bun install
+# or
+deno install
 ```
 
-To execute or build:
+## Run or build
 
 ```json
   "scripts": {
-    "dev": "bun run src/index.ts",
-    "build": "bun run build.ts"
+    "dev": "tsx src/index.ts",
+    "build": "tsx build.ts"
   }
 ```
 
-This project was created using `bun init` in bun v1.3.8. [Bun](https://bun.com) is a fast all-in-one JavaScript runtime.
+```bash
+npm run dev
+npm run build
+```
+
+## Supported runtimes
+
+- **Node.js** (v18+) — via `tsx` for TypeScript execution and `esbuild` for bundling
+- **Bun** — `bun run src/index.ts` or `bun run build.ts`
+- **Deno** — `deno run src/index.ts` or `deno run build.ts`

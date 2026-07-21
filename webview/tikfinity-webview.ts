@@ -56,7 +56,7 @@ const injectionScript = `
                     window.ipc.postMessage(data);
                 }
                 // WE WILL NOT DO "return originalSend()". 
-                // Blocking the send in the browser prevents it from kicking out the backend connection (Bun)
+                // Blocking the send in the browser prevents it from kicking out the backend connection
                 
             }
             return originalSend.apply(this, arguments);

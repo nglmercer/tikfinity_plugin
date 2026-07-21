@@ -26,8 +26,7 @@ async function getWebviewScriptPath(): Promise<string> {
     // Also try relative to the current module directory in case we're deep in dist or src
     (() => {
         try {
-            // @ts-ignore
-            const currentDir = import.meta.dir;
+            const currentDir = path.dirname(new URL(import.meta.url).pathname);
             if (currentDir) return path.join(currentDir, '..', '..', PATHS.TIKFINITY_WEBVIEW_TS);
         } catch(e) {}
         return "";
@@ -50,6 +49,25 @@ async function getWebviewScriptPath(): Promise<string> {
 }
 
 
+
+/**
+ * Detects the current JavaScript runtime and returns the appropriate command
+ * to execute a script file. Works with Node.js, Bun, and Deno.
+ */
+function getRuntimeCommand(scriptPath: string): { cmd: string; args: string[] } {
+  const execPath = process.execPath;
+  const isBun = execPath.includes('/bun') || execPath.includes('\\bun');
+  const isDeno = execPath.includes('/deno') || execPath.includes('\\deno');
+
+  if (isBun) {
+    return { cmd: 'bun', args: ['run', scriptPath] };
+  }
+  if (isDeno) {
+    return { cmd: 'deno', args: ['run', '--allow-all', scriptPath] };
+  }
+  // Node.js
+  return { cmd: 'node', args: [scriptPath] };
+}
 
 /**
  * TikFinityClient provides a better API control to connect, disconnect,
@@ -98,7 +116,8 @@ export class TikFinityClient extends EventEmitter {
     const webviewScriptPath = await getWebviewScriptPath();
     this.logger(`Using webview script: ${webviewScriptPath}`);
 
-    this.webviewProcess = spawn("bun", ["run", webviewScriptPath], {
+    const runtime = getRuntimeCommand(webviewScriptPath);
+    this.webviewProcess = spawn(runtime.cmd, runtime.args, {
       stdio: ["pipe", "pipe", "pipe"],
       shell: true,
       detached: false,

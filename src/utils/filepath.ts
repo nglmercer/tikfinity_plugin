@@ -10,27 +10,19 @@ function getBaseDir(): string {
 
     // 1. Try to get directory of current module (useful for plugins/bundled JS)
     try {
-        // @ts-ignore - Bun-specific
-        let currentFilePath = import.meta.path;
-        
-        // @ts-ignore - Standard ESM
-        if (!currentFilePath && import.meta.url) {
-            try {
-                currentFilePath = new URL(import.meta.url).pathname;
-            } catch (e) {}
-        }
+        // Cross-runtime: use import.meta.url (works in Node.js, Bun, Deno)
+        let currentFilePath = new URL(import.meta.url).pathname;
 
         if (currentFilePath) {
             candidates.push(path.dirname(currentFilePath));
             // Also try parent directory as we might be in 'src' or 'dist'
             candidates.push(path.dirname(path.dirname(currentFilePath)));
         }
-        
-        // @ts-ignore - Bun-specific
-        if (import.meta.dir) {
-            candidates.push(import.meta.dir);
-            candidates.push(path.dirname(import.meta.dir));
-        }
+
+        // Cross-runtime: derive directory from import.meta.url
+        const currentDir = path.dirname(new URL(import.meta.url).pathname);
+        candidates.push(currentDir);
+        candidates.push(path.dirname(currentDir));
     } catch (e) {}
 
 
@@ -44,10 +36,13 @@ function getBaseDir(): string {
     // 3. Current working directory
     candidates.push(process.cwd());
 
-    // 4. If there's a main entry point
-    if (require.main && require.main.filename) {
-        candidates.push(path.dirname(require.main.filename));
-    }
+    // 4. If there's a main entry point (CommonJS fallback)
+    try {
+        // @ts-ignore - require may not exist in ESM
+        if (require.main && require.main.filename) {
+            candidates.push(path.dirname(require.main.filename));
+        }
+    } catch (e) {}
 
     // Remove duplicates and invalid paths
     const uniqueCandidates = [...new Set(candidates.filter(c => c && fs.existsSync(c)))];
@@ -81,24 +76,24 @@ async function findInRoots(relativePaths: string | string[]): Promise<string | n
     // 1. Check relative to baseDir
     for (const relPath of pathsToCheck) {
         const fullPath = path.resolve(baseDir, relPath);
-        if (await Bun.file(fullPath).exists()) {
+        if (fs.existsSync(fullPath)) {
             return fullPath;
         }
     }
-    
+
     // 2. Check if any are already absolute paths
     for (const relPath of pathsToCheck) {
-        if (path.isAbsolute(relPath) && await Bun.file(relPath).exists()) {
+        if (path.isAbsolute(relPath) && fs.existsSync(relPath)) {
             return relPath;
         }
     }
-    
+
     // 3. Try relative to CWD if different from baseDir
     const cwd = process.cwd();
     if (cwd !== baseDir) {
         for (const relPath of pathsToCheck) {
             const fullPath = path.resolve(cwd, relPath);
-            if (await Bun.file(fullPath).exists()) {
+            if (fs.existsSync(fullPath)) {
                 return fullPath;
             }
         }

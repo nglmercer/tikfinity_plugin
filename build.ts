@@ -1,25 +1,31 @@
 // build.ts
-import { version } from "./package.json";
+import { build } from "esbuild";
+import { version, name } from "./package.json";
+
+const define = {
+  __APP_VERSION__: JSON.stringify(version),
+};
 
 await Promise.all([
   // Main build
-  Bun.build({
-    entrypoints: ["src/index.ts"],
+  build({
+    entryPoints: ["src/index.ts"],
     outdir: "dist",
-    target: "bun",
-    naming: "[dir]/pluginclaws.[ext]",
-    define: {
-      __APP_VERSION__: JSON.stringify(version),
-    },
+    entryNames: `[dir]/${name}`,
+    bundle: true,
+    platform: "node",
+    format: "esm",
+    define,
   }),
 
   // Webview script build
-  Bun.build({
-    entrypoints: ["webview/tikfinity-webview.ts"],
+  build({
+    entryPoints: ["webview/tikfinity-webview.ts"],
     outdir: "dist/webview",
-    target: "bun",
-    define: {
-      __APP_VERSION__: JSON.stringify(version),
-    },
+    entryNames: "[name]",
+    bundle: true,
+    platform: "node",
+    format: "esm",
+    define,
   }),
 ]);

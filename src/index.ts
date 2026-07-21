@@ -1,4 +1,4 @@
-import { type IPlugin, type PluginContext } from "bun_plugins";
+import { type IPlugin, type PluginContext } from "./types/plugin.js";
 import {
   LOG_MESSAGES,
   PLATFORMS,
@@ -25,7 +25,7 @@ export function createTikFinityClient(options?: TikFinityOptions): TikFinityClie
 }
 declare const __APP_VERSION__: string;
 
-const requireVersion = __APP_VERSION__; // → "1.2.3" inlined como stringconsole.log(requireVersion)
+const requireVersion = typeof __APP_VERSION__ !== 'undefined' ? __APP_VERSION__ : "unknown";
 export class TikfinityPlugin implements IPlugin {
   name: string = "tikfinity";
   version: string = requireVersion;
@@ -37,7 +37,7 @@ export class TikfinityPlugin implements IPlugin {
   async onLoad(context: PluginContext) {
     const { emit, log,storage } = context;
     log.info(LOG_MESSAGES.PLUGIN.LOADING);
-    
+
     // Set up event handler
     eventHandler = (payload: unknown) => {
       if (emit && typeof emit === "function") {
@@ -46,7 +46,7 @@ export class TikfinityPlugin implements IPlugin {
         log.info(`[${PLATFORMS.TIKTOK}]`, payload);
       }
     };
-    
+
     client.on(TIKFINITY_EVENTS.EVENT, eventHandler);
     client.on(TIKFINITY_EVENTS.PAYLOAD, async (payload) => {
       await storage.set(TIKFINITY_EVENTS.PAYLOAD, payload);
@@ -55,19 +55,19 @@ export class TikfinityPlugin implements IPlugin {
     });
     await client.connect();
   }
-  
+
   async onReload(context: PluginContext) {
     const { log, emit,storage } = context;
     log.info(LOG_MESSAGES.PLUGIN.RELOADING);
-    
+
     // Remove old event handler
     if (eventHandler) {
       client.off(TIKFINITY_EVENTS.EVENT, eventHandler);
     }
-    
+
     // Reset client state (keep webview alive, remove listeners)
     client.reset();
-    
+
     // Re-setup event handler
     eventHandler = (payload: unknown) => {
       if (emit && typeof emit === "function") {
@@ -76,9 +76,9 @@ export class TikfinityPlugin implements IPlugin {
         console.log(`[${PLATFORMS.TIKTOK}]`, payload);
       }
     };
-    
+
     client.on(TIKFINITY_EVENTS.EVENT, eventHandler);
-    
+
     // Reinitialize (reconnect WebSocket or start fresh)
     if (this.defaultConfig?.reinitialize) {
       const payload = await storage.get(TIKFINITY_EVENTS.PAYLOAD);
@@ -87,25 +87,40 @@ export class TikfinityPlugin implements IPlugin {
       }
     }
   }
-  
+
   async onUnload() {
     console.log(LOG_MESSAGES.WEBVIEW.ON_UNLOAD);
-    
+
     // Clean up event handler first (synchronous, fast)
     if (eventHandler) {
       client.off(TIKFINITY_EVENTS.EVENT, eventHandler);
       eventHandler = null;
     }
-    
+
     // Clean up client - this will kill the webview process
     client.clean();
-    
+
     // Small delay to ensure process termination
     await new Promise(resolve => setTimeout(resolve, 200));
   }
 }
 
-if (import.meta.main) {
+function isMainModule(): boolean {
+  // Bun and Deno support import.meta.main
+  try {
+    // @ts-ignore - import.meta.main is not in standard TypeScript types
+    if (typeof import.meta.main === 'boolean') return import.meta.main;
+  } catch {}
+  // Node.js fallback
+  if (typeof process !== 'undefined' && process.argv[1]) {
+    try {
+      return process.argv[1] === new URL(import.meta.url).pathname;
+    } catch {}
+  }
+  return false;
+}
+
+if (isMainModule()) {
   // Create client with custom options
   const defaultTimes = {
     reconnect: 30000,
@@ -118,7 +133,7 @@ if (import.meta.main) {
     debug: true,
     logger: (msg: string, ...args: any[]) => console.log(`[Custom]`, msg, ...args),
   });
-  
+
   customClient.on(TIKFINITY_EVENTS.EVENT, (payload: unknown) => {
     const p = payload as { eventName?: string; data?: { comment?: string } };
     if (p?.eventName === TIKFINITY_EVENTS.CHAT && p?.data?.comment) {
@@ -126,16 +141,16 @@ if (import.meta.main) {
     }
     console.log(`[${PLATFORMS.TIKTOK} Event]:`, p?.eventName);
   });
-  
+
   // Test methods on initialization
   console.log('Connecting with custom options...');
   await customClient.connect().catch(console.error);
-  
+
   // Test disconnect/reconnect cycle after 25 seconds
   await new Promise(resolver => setTimeout(resolver, defaultTimes.reconnect));
   console.log('Disconnecting...');
   customClient.disconnect();
-  
+
   // Wait 5 seconds then reconnect (uses existing payload + webview)
 /*   await new Promise(resolver => setTimeout(resolver, 5000));
   console.log('Reconnecting with existing payload...');
