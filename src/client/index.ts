@@ -17,7 +17,7 @@ import {
 async function getWebviewScriptPath(): Promise<string> {
   const scriptName = path.basename(PATHS.TIKFINITY_WEBVIEW_TS);
   const scriptNameJs = scriptName.replace(/\.ts$/, '.js');
-  
+
   const candidates = [
     `webview/${scriptNameJs}`,
     scriptNameJs,
@@ -91,7 +91,7 @@ export class TikFinityClient extends EventEmitter {
   }
 
   /**
-   * Starts the webview process and initializes the WebSocket connection 
+   * Starts the webview process and initializes the WebSocket connection
    * once the payload is received.
    */
   public async connect(options?: TikFinityOptions): Promise<void> {
@@ -119,8 +119,10 @@ export class TikFinityClient extends EventEmitter {
     const runtime = getRuntimeCommand(webviewScriptPath);
     this.webviewProcess = spawn(runtime.cmd, runtime.args, {
       stdio: ["pipe", "pipe", "pipe"],
-      shell: true,
       detached: false,
+      env: {
+        ...process.env,
+      },
     });
 
     if (this.webviewProcess.stdout) {
@@ -130,7 +132,7 @@ export class TikFinityClient extends EventEmitter {
         if (output.includes(TIKTOK_CONSTANTS.PAYLOAD_PREFIX)) {
           const lines = output.split('\n');
           let payload = "";
-          
+
           for (const line of lines) {
             if (line.includes(TIKTOK_CONSTANTS.PAYLOAD_PREFIX)) {
               payload = line.split(TIKTOK_CONSTANTS.PAYLOAD_PREFIX)[1].trim();
@@ -138,11 +140,11 @@ export class TikFinityClient extends EventEmitter {
               this.logger(TIKTOK_CONSTANTS.EVENT_MESSAGE, line.trim());
             }
           }
-          
+
           if (!payload || this.currentPayload === payload) {
             return;
           }
-          
+
           this.currentPayload = payload;
           this.emit(TIKFINITY_EVENTS.PAYLOAD, payload);
           if (this.wsConnection) {
@@ -201,7 +203,7 @@ export class TikFinityClient extends EventEmitter {
 
     // Emit standard event
     this.emit(TIKFINITY_EVENTS.EVENT, { eventName, data: eventData });
-    
+
     // Send event to webview for bidirectional communication
     this.sendEventToWebview(eventName, eventData);
   }
@@ -235,21 +237,32 @@ export class TikFinityClient extends EventEmitter {
     this.disconnect();
     if (this.webviewProcess) {
       console.log(LOG_MESSAGES.WEBVIEW.CLOSING);
-      
-      try {
-        // First, try to gracefully close by writing to stdin
-        // The webview script listens for commands
-        if (this.webviewProcess.stdin) {
-          this.webviewProcess.stdin.write('TikFinity_EXIT\n');
-        }
-        
-        // Try to kill gracefully first
-      } catch (e) {
-        this.webviewProcess.kill('SIGTERM');
-        this.webviewProcess.kill('SIGKILL');
-      }
-      
+
+      const proc = this.webviewProcess;
       this.webviewProcess = null;
+
+      try {
+        if (proc.stdin && !proc.stdin.destroyed) {
+          proc.stdin.write('TikFinity_EXIT\n');
+        }
+      } catch (e) {
+        // stdin write failed, kill immediately
+        proc.kill('SIGKILL');
+        this.currentPayload = null;
+        this.removeAllListeners();
+        return;
+      }
+
+      // Force-kill after timeout if process didn't exit gracefully
+      const killTimeout = setTimeout(() => {
+        try {
+          proc.kill('SIGKILL');
+        } catch (_) {}
+      }, 2000);
+
+      proc.on("exit", () => {
+        clearTimeout(killTimeout);
+      });
     }
     this.currentPayload = null;
     this.removeAllListeners();
@@ -291,7 +304,7 @@ export class TikFinityClient extends EventEmitter {
   public reconnect(): void {
     console.log(LOG_MESSAGES.TIKFINITY.RECONNECTING);
     this.disconnect();
-    
+
     if (this.currentPayload) {
       connectWS(this.currentPayload, (message) => {
         this.handleMessage(message);

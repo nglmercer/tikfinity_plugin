@@ -70,15 +70,13 @@ export function buildInjectionScript(): string {
             // Intercept WebSocket at the prototype level
             function interceptWebSocketPrototype() {
                 if (typeof WebSocket === 'undefined') {
-                    window.__tikfinity_log__('WARN', 'WebSocket not available');
-                    return;
+                    return false;
                 }
                 if (!WebSocket.prototype || !WebSocket.prototype.send) {
-                    window.__tikfinity_log__('WARN', 'WebSocket.prototype.send not available');
-                    return;
+                    return false;
                 }
                 if (WebSocket.prototype.send.__tikfinityIntercepted) {
-                    return;
+                    return true;
                 }
 
                 try {
@@ -95,19 +93,20 @@ export function buildInjectionScript(): string {
                     };
                     WebSocket.prototype.send.__tikfinityIntercepted = true;
                     window.__tikfinity_log__('INFO', 'WebSocket prototype interceptor installed');
+                    return true;
                 } catch(e) {
                     window.__tikfinity_log__('ERROR', 'prototype interceptor failed', { error: e.message });
+                    return false;
                 }
             }
 
             // Intercept WebSocket at the constructor level (catches page replacements)
             function interceptWebSocketConstructor() {
                 if (typeof WebSocket === 'undefined') {
-                    window.__tikfinity_log__('WARN', 'WebSocket constructor not available');
-                    return;
+                    return false;
                 }
                 if (window.WebSocket.__tikfinityIntercepted) {
-                    return;
+                    return true;
                 }
 
                 try {
@@ -143,32 +142,35 @@ export function buildInjectionScript(): string {
                     wrappedWebSocket.__tikfinityIntercepted = true;
 
                     window.WebSocket = wrappedWebSocket;
-                    // Also try to set on globalThis for pages that use the global directly
                     try { this.WebSocket = wrappedWebSocket; } catch(e) {}
 
                     window.__tikfinity_log__('INFO', 'WebSocket constructor interceptor installed');
+                    return true;
                 } catch(e) {
                     window.__tikfinity_log__('ERROR', 'constructor interceptor failed', { error: e.message });
+                    return false;
                 }
             }
 
-            // Install both interceptors
-            interceptWebSocketPrototype();
-            interceptWebSocketConstructor();
+            // Install with retry until both succeed
+            var prototypeDone = false;
+            var constructorDone = false;
 
-            // Re-install on page load (handles reconnect/reload)
+            function installAll() {
+                if (!prototypeDone) prototypeDone = interceptWebSocketPrototype();
+                if (!constructorDone) constructorDone = interceptWebSocketConstructor();
+                if (!prototypeDone || !constructorDone) {
+                    setTimeout(installAll, 250);
+                }
+            }
+
+            installAll();
+
             window.addEventListener('load', function() {
-                window.__tikfinity_log__('INFO', 'page load event, re-installing interceptors');
-                interceptWebSocketPrototype();
-                interceptWebSocketConstructor();
+                prototypeDone = false;
+                constructorDone = false;
+                installAll();
             });
-
-            // Also retry after a short delay (catches late WebSocket definitions)
-            setTimeout(function() {
-                window.__tikfinity_log__('INFO', 'delayed retry, re-installing interceptors');
-                interceptWebSocketPrototype();
-                interceptWebSocketConstructor();
-            }, 500);
 
             window.__tikfinity_log__('INFO', 'injection script completed');
         } catch(e) {
