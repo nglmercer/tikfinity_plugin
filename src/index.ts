@@ -37,14 +37,13 @@ export default class TikfinityPlugin implements IPlugin {
     payload: false
   };
   async onLoad(context: PluginContext) {
-    const emitter = context.getPlugin<EventEmitterPluginType>("event-emitter")
-    if (!emitter) return;
-    const { on, emit } = emitter;
     const info = console.log;
     info(LOG_MESSAGES.PLUGIN.LOADING);
 
     // Set up event handler
     eventHandler = (payload: unknown) => {
+    const emitter = context.getPlugin<EventEmitterPluginType>("event-emitter")
+    const { on, emit } = emitter ?? {};
       if (emit && typeof emit === "function") {
         emit(PLATFORMS.TIKTOK, payload);
       } else {
@@ -61,9 +60,6 @@ export default class TikfinityPlugin implements IPlugin {
   }
 
   async onReload(context: PluginContext) {
-    const emitter = context.getPlugin<EventEmitterPluginType>("event-emitter")
-    //if (!emitter) return;
-    const { on, emit } = emitter ?? {};
     const info = console.log;
     info(LOG_MESSAGES.PLUGIN.RELOADING);
 
@@ -77,6 +73,9 @@ export default class TikfinityPlugin implements IPlugin {
 
     // Re-setup event handler
     eventHandler = (payload: unknown) => {
+    const emitter = context.getPlugin<EventEmitterPluginType>("event-emitter")
+    //if (!emitter) return;
+    const { on, emit } = emitter ?? {};
       if (emit && typeof emit === "function") {
         emit(PLATFORMS.TIKTOK, payload);
       } else {
@@ -128,7 +127,7 @@ if (isMainModule()) {
   // Create client with custom options
   const defaultTimes = {
     reconnect: 30000,
-    disconnect: 5000,
+    disconnect: 10000,
   }
   const customClient = new TikFinityClient({
     autoReconnect: true,
@@ -159,7 +158,8 @@ if (isMainModule()) {
 /*   await new Promise(resolver => setTimeout(resolver, 5000));
   console.log('Reconnecting with existing payload...');
   customClient.reconnect(); */
-  await new Promise(resolver => setTimeout(resolver, 1000));
+  // using args is better for debugging
+  await new Promise(resolver => setTimeout(resolver, 15000));
   console.log('Cleaning up...');
   customClient.clean();
 }

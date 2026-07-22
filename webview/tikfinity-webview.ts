@@ -19,8 +19,8 @@ const EVENT_LOG_STDIN_SETUP = "stdin setup error (non-fatal):";
 
 const injectionScript = `
     (function () {
-        window.TiktokPayload = "";
-        window.pendingEvents = [];
+        window.TiktokPayload = window.TiktokPayload || "";
+        window.pendingEvents = window.pendingEvents || [];
         
         window.getPayload = function () {
             return window.TiktokPayload;
@@ -47,20 +47,52 @@ const injectionScript = `
             window.ipc.postMessage(data);
         };
         
-        const originalSend = WebSocket.prototype.send;
-        WebSocket.prototype.send = function (data) {
-            if (typeof data === 'string' && data.includes("${SET_UNIQUE_ID}")) {
-                if (window.TiktokPayload !== data) {
-                    console.log("${INJECTION_LOG_NEW_DATA}", data)
-                    window.TiktokPayload = data;
-                    window.ipc.postMessage(data);
+        // Listen for messages from backend
+        window.__webview_on_message__ = function(message) {
+            try {
+                const event = JSON.parse(message);
+                window.pendingEvents.push(event);
+                window.dispatchEvent(new MessageEvent('message', { 
+                    data: event,
+                    origin: 'tikfinity-backend',
+                    bubbles: true
+                }));
+                if (event.eventName) {
+                    window.dispatchEvent(new CustomEvent('${EVENT_CUSTOM_PREFIX}' + event.eventName, { 
+                        detail: event 
+                    }));
                 }
-                // WE WILL NOT DO "return originalSend()". 
-                // Blocking the send in the browser prevents it from kicking out the backend connection
-                
+            } catch (e) {
+                console.log('Failed to parse event from backend:', message);
             }
-            return originalSend.apply(this, arguments);
         };
+        
+        // WebSocket interceptor setup (idempotent - safe to call multiple times)
+        function setupWebSocketInterceptor() {
+            if (WebSocket.prototype.send.__tikfinityIntercepted) {
+                return;
+            }
+            const originalSend = WebSocket.prototype.send;
+            WebSocket.prototype.send = function (data) {
+                if (typeof data === 'string' && data.includes("${SET_UNIQUE_ID}")) {
+                    if (window.TiktokPayload !== data) {
+                        console.log("${INJECTION_LOG_NEW_DATA}", data);
+                        window.TiktokPayload = data;
+                        window.ipc.postMessage(data);
+                    }
+                }
+                return originalSend.apply(this, arguments);
+            };
+            WebSocket.prototype.send.__tikfinityIntercepted = true;
+        }
+        
+        setupWebSocketInterceptor();
+        
+        // Re-inject interceptor on page load (handles reconnect/reload)
+        window.addEventListener('load', function() {
+            setupWebSocketInterceptor();
+        });
+        
         console.log("${INJECTION_LOG_INTERCEPTOR}");
     })();
 `;
@@ -107,9 +139,10 @@ async function startWebview() {
       // Evaluate JavaScript in the webview to dispatch the event
       webview.evaluateScript(`
         (function() {
-            window.pendingEvents.push(${eventData});
+            const eventData = JSON.parse(${JSON.stringify(eventData)});
+            window.pendingEvents.push(eventData);
             window.dispatchEvent(new MessageEvent('message', { 
-                data: ${eventData},
+                data: eventData,
                 origin: 'tikfinity-backend'
             }));
         })();
@@ -143,7 +176,7 @@ async function startWebview() {
         // Forward event to webview JavaScript
         webview.evaluateScript(`
           (function() {
-              const event = ${eventData};
+              const event = JSON.parse(${JSON.stringify(eventData)});
               window.pendingEvents.push(event);
               window.dispatchEvent(new MessageEvent('message', { 
                   data: event,
