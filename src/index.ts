@@ -1,4 +1,4 @@
-import { type IPlugin, type PluginContext } from "./types/plugin.js";
+import { type IPlugin, type PluginContext,type EventEmitterPluginType } from "./types/plugin.js";
 import {
   LOG_MESSAGES,
   PLATFORMS,
@@ -26,39 +26,46 @@ export function createTikFinityClient(options?: TikFinityOptions): TikFinityClie
 declare const __APP_VERSION__: string;
 
 const requireVersion = typeof __APP_VERSION__ !== 'undefined' ? __APP_VERSION__ : "unknown";
-export class TikfinityPlugin implements IPlugin {
-  name: string = "tikfinity";
-  version: string = requireVersion;
-  description: string = "TikFinity Plugin for TikTok";
-  defaultConfig? = {
+export default class TikfinityPlugin implements IPlugin {
+  metadata = {
+    name: "tikfinity",
+    version: requireVersion,
+    description: "TikFinity Plugin for TikTok",
+  };
+  defaultConfig: Record<string, boolean | string> = {
     reinitialize: true,
-    payload: null
+    payload: false
   };
   async onLoad(context: PluginContext) {
-    const { emit, log,storage } = context;
-    log.info(LOG_MESSAGES.PLUGIN.LOADING);
+    const emitter = context.getPlugin<EventEmitterPluginType>("event-emitter")
+    if (!emitter) return;
+    const { on, emit } = emitter;
+    const info = console.log;
+    info(LOG_MESSAGES.PLUGIN.LOADING);
 
     // Set up event handler
     eventHandler = (payload: unknown) => {
       if (emit && typeof emit === "function") {
         emit(PLATFORMS.TIKTOK, payload);
       } else {
-        log.info(`[${PLATFORMS.TIKTOK}]`, payload);
+        info(`[${PLATFORMS.TIKTOK}]`, payload);
       }
     };
 
     client.on(TIKFINITY_EVENTS.EVENT, eventHandler);
     client.on(TIKFINITY_EVENTS.PAYLOAD, async (payload) => {
-      await storage.set(TIKFINITY_EVENTS.PAYLOAD, payload);
-      if (!this.defaultConfig || !payload) return;
+      if (!payload) return;
       this.defaultConfig.payload = payload;
     });
     await client.connect();
   }
 
   async onReload(context: PluginContext) {
-    const { log, emit,storage } = context;
-    log.info(LOG_MESSAGES.PLUGIN.RELOADING);
+    const emitter = context.getPlugin<EventEmitterPluginType>("event-emitter")
+    //if (!emitter) return;
+    const { on, emit } = emitter ?? {};
+    const info = console.log;
+    info(LOG_MESSAGES.PLUGIN.RELOADING);
 
     // Remove old event handler
     if (eventHandler) {
@@ -80,11 +87,8 @@ export class TikfinityPlugin implements IPlugin {
     client.on(TIKFINITY_EVENTS.EVENT, eventHandler);
 
     // Reinitialize (reconnect WebSocket or start fresh)
-    if (this.defaultConfig?.reinitialize) {
-      const payload = await storage.get(TIKFINITY_EVENTS.PAYLOAD);
-      if (!payload || payload !== this.defaultConfig.payload) {
-        await client.reinitialize();
-      }
+    if (this.defaultConfig.reinitialize && this.defaultConfig.payload) {
+      await client.reinitialize();
     }
   }
 
