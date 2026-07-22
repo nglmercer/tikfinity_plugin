@@ -1,13 +1,17 @@
 import { Application } from "webview-napi";
+import { buildInjectionScript } from "./injection.ts";
+import {
+  PAYLOAD_PREFIX,
+  EVENT_PREFIX,
+  EVENT_CUSTOM_PREFIX,
+  SET_UNIQUE_ID,
+  EXIT_COMMAND,
+  stringifyEvent,
+  parseEvent,
+  wrapEvent,
+} from "./protocol.ts";
 
-// Constants to avoid magic strings
 const TIKFINITY_URL = "https://tikfinity.zerody.one/";
-const PAYLOAD_PREFIX = "TikFinity_PAYLOAD:";
-const EVENT_PREFIX = "TikFinity_EVENT:";
-const EVENT_CUSTOM_PREFIX = "tikfinity-";
-const SET_UNIQUE_ID = "setUniqueId";
-const INJECTION_LOG_NEW_DATA = "injectionScript new data captured:";
-const INJECTION_LOG_INTERCEPTOR = "WebSocket interceptor injected";
 const STARTUP_LOG = "Starting TikFinity webview process...";
 const WINDOW_TITLE = "TikTok Login - Synchronizing TikFinity";
 const PAYLOAD_LOG_RECEIVED = "Payload received from browser:";
@@ -16,86 +20,6 @@ const PAYLOAD_LOG_LABEL = "PAYLOAD:";
 const EVENT_LOG_FORWARD = "Event to forward to webview:";
 const EVENT_LOG_STDIN = "stdin error (non-fatal):";
 const EVENT_LOG_STDIN_SETUP = "stdin setup error (non-fatal):";
-
-const injectionScript = `
-    (function () {
-        window.TiktokPayload = window.TiktokPayload || "";
-        window.pendingEvents = window.pendingEvents || [];
-        
-        window.getPayload = function () {
-            return window.TiktokPayload;
-        };
-        
-        // Function to get pending events from webview
-        window.getPendingEvents = function () {
-            const events = window.pendingEvents.slice();
-            window.pendingEvents = [];
-            return events;
-        };
-        
-        // Listen for events from parent (backend) via custom protocol
-        // We'll use a polling mechanism to check for events
-        window.checkForEvents = function () {
-            if (window.pendingEvents.length > 0) {
-                return window.pendingEvents.shift();
-            }
-            return null;
-        };
-        
-        // Expose function to send messages to parent
-        window.sendToBackend = function(data) {
-            window.ipc.postMessage(data);
-        };
-        
-        // Listen for messages from backend
-        window.__webview_on_message__ = function(message) {
-            try {
-                const event = JSON.parse(message);
-                window.pendingEvents.push(event);
-                window.dispatchEvent(new MessageEvent('message', { 
-                    data: event,
-                    origin: 'tikfinity-backend',
-                    bubbles: true
-                }));
-                if (event.eventName) {
-                    window.dispatchEvent(new CustomEvent('${EVENT_CUSTOM_PREFIX}' + event.eventName, { 
-                        detail: event 
-                    }));
-                }
-            } catch (e) {
-                console.log('Failed to parse event from backend:', message);
-            }
-        };
-        
-        // WebSocket interceptor setup (idempotent - safe to call multiple times)
-        function setupWebSocketInterceptor() {
-            if (WebSocket.prototype.send.__tikfinityIntercepted) {
-                return;
-            }
-            const originalSend = WebSocket.prototype.send;
-            WebSocket.prototype.send = function (data) {
-                if (typeof data === 'string' && data.includes("${SET_UNIQUE_ID}")) {
-                    if (window.TiktokPayload !== data) {
-                        console.log("${INJECTION_LOG_NEW_DATA}", data);
-                        window.TiktokPayload = data;
-                        window.ipc.postMessage(data);
-                    }
-                }
-                return originalSend.apply(this, arguments);
-            };
-            WebSocket.prototype.send.__tikfinityIntercepted = true;
-        }
-        
-        setupWebSocketInterceptor();
-        
-        // Re-inject interceptor on page load (handles reconnect/reload)
-        window.addEventListener('load', function() {
-            setupWebSocketInterceptor();
-        });
-        
-        console.log("${INJECTION_LOG_INTERCEPTOR}");
-    })();
-`;
 
 async function startWebview() {
   console.log(STARTUP_LOG);
@@ -106,17 +30,20 @@ async function startWebview() {
   });
 
   const webview = window.createWebview({
-    preload: injectionScript,
+    preload: buildInjectionScript(),
     url: TIKFINITY_URL,
     enableDevtools: true,
   });
-    /*   if (process && process.env.NODE_ENV === "development") {
-        webview.openDevtools();
-      }
-    */
-    webview.onIpcMessage((_e, message) => {
-    // Convert the message body Buffer to text
+
+  webview.onIpcMessage((_e, message) => {
     const payload = message.toString();
+
+    // Handle debug logs from injection script
+    if (payload.startsWith('__TIKFIVITY_LOG__:')) {
+      const logMsg = payload.replace('__TIKFIVITY_LOG__:', '');
+      console.error('[webview]', logMsg);
+      return;
+    }
 
     console.log(PAYLOAD_LOG_RECEIVED, payload);
 
@@ -124,24 +51,18 @@ async function startWebview() {
       console.log(PAYLOAD_LOG_CREDENTIALS);
       console.log(PAYLOAD_LOG_LABEL, payload);
 
-      // Send the payload to the parent process via stdout
       process.stdout.write(`${PAYLOAD_PREFIX}${payload}\n`);
 
-      // Wait a moment to ensure the message is sent
-      setTimeout(() => {
-        // app.exit();
-      }, 500);
+      setTimeout(() => {}, 500);
     } else if (payload.startsWith(EVENT_PREFIX)) {
-      // Handle events sent from backend to webview
       const eventData = payload.replace(EVENT_PREFIX, "");
       console.log(EVENT_LOG_FORWARD, eventData);
-      
-      // Evaluate JavaScript in the webview to dispatch the event
+
       webview.evaluateScript(`
         (function() {
             const eventData = JSON.parse(${JSON.stringify(eventData)});
             window.pendingEvents.push(eventData);
-            window.dispatchEvent(new MessageEvent('message', { 
+            window.dispatchEvent(new MessageEvent('message', {
                 data: eventData,
                 origin: 'tikfinity-backend'
             }));
@@ -154,46 +75,41 @@ async function startWebview() {
     console.log("event", event);
   });
 
-  // Listen for events from parent process via stdin
-  const EXIT_COMMAND = 'TikFinity_EXIT';
   try {
     process.stdin.resume();
     process.stdin.setEncoding("utf8");
-    
+
     process.stdin.on("data", (chunk) => {
       const input = chunk.toString();
-      
-      // Check for exit command first
+
       if (input.startsWith(EXIT_COMMAND)) {
         console.log('Received exit command, closing webview...');
         app.exit();
         return;
       }
-      
+
       if (input.startsWith(EVENT_PREFIX)) {
         const eventData = input.replace(EVENT_PREFIX, "").trim();
-        
-        // Forward event to webview JavaScript
+
         webview.evaluateScript(`
           (function() {
               const event = JSON.parse(${JSON.stringify(eventData)});
               window.pendingEvents.push(event);
-              window.dispatchEvent(new MessageEvent('message', { 
+              window.dispatchEvent(new MessageEvent('message', {
                   data: event,
                   origin: 'tikfinity-backend',
                   bubbles: true
               }));
-              // Also dispatch specific event
               if (event.eventName) {
-                  window.dispatchEvent(new CustomEvent('${EVENT_CUSTOM_PREFIX}' + event.eventName, { 
-                      detail: event 
+                  window.dispatchEvent(new CustomEvent('${EVENT_CUSTOM_PREFIX}' + event.eventName, {
+                      detail: event
                   }));
               }
           })();
         `);
       }
     });
-    
+
     process.stdin.on("error", (err) => {
       console.log(EVENT_LOG_STDIN, err.message);
     });

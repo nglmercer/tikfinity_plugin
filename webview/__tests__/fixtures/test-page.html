@@ -1,0 +1,133 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>TikFinity Test Page</title>
+  <style>
+    body { font-family: monospace; padding: 20px; background: #1a1a2e; color: #eee; }
+    #log { background: #16213e; padding: 10px; border-radius: 4px; max-height: 400px; overflow-y: auto; }
+    .log-entry { margin: 2px 0; font-size: 12px; }
+    .error { color: #ff6b6b; }
+    .success { color: #51cf66; }
+    .info { color: #74c0fc; }
+    button { padding: 8px 16px; margin: 4px; cursor: pointer; border-radius: 4px; border: none; background: #339af0; color: white; }
+    button:hover { background: #228be6; }
+  </style>
+</head>
+<body>
+  <h1>TikFinity Test Harness</h1>
+  <div>
+    <button id="btn-send-payload">Send Payload (setUniqueId)</button>
+    <button id="btn-send-ws-message">Send Regular WS Message</button>
+    <button id="btn-check-events">Check Pending Events</button>
+    <button id="btn-check-payload">Check Captured Payload</button>
+    <button id="btn-clear-log">Clear Log</button>
+  </div>
+  <div id="log"></div>
+
+  <script>
+    const log = (msg, type = 'info') => {
+      const el = document.getElementById('log');
+      const entry = document.createElement('div');
+      entry.className = `log-entry ${type}`;
+      entry.textContent = `[${new Date().toISOString()}] ${msg}`;
+      el.appendChild(entry);
+      el.scrollTop = el.scrollHeight;
+    };
+
+    // Capture errors
+    window.onerror = (msg, src, line, col, err) => {
+      log(`ERROR: ${msg} at ${src}:${line}:${col}`, 'error');
+    };
+
+    // Simulate TikFinity WebSocket behavior
+    let wsInstance = null;
+
+    class MockWebSocket {
+      constructor(url) {
+        this.url = url;
+        this.readyState = 0;
+        wsInstance = this;
+        setTimeout(() => {
+          this.readyState = 1;
+          if (this.onopen) this.onopen();
+          log(`WebSocket connected to ${url}`, 'success');
+        }, 100);
+      }
+      send(data) {
+        log(`WebSocket.send called with: ${data}`, 'info');
+        // Simulate response
+        if (this.onmessage && data.includes('setUniqueId')) {
+          setTimeout(() => {
+            this.onmessage({ data: JSON.stringify({ uniqueId: 'test_user_123', sessionId: 'abc' }) });
+          }, 50);
+        }
+      }
+      close() {
+        this.readyState = 3;
+        if (this.onclose) this.onclose();
+        log('WebSocket closed', 'info');
+      }
+    }
+
+    window.WebSocket = MockWebSocket;
+
+    // Test button handlers
+    document.getElementById('btn-send-payload').addEventListener('click', () => {
+      const payload = JSON.stringify({
+        eventName: 'setUniqueId',
+        data: { uniqueId: 'test_user_' + Date.now(), sessionId: 'sess_' + Date.now() }
+      });
+      log(`Sending payload: ${payload}`, 'info');
+      if (wsInstance) {
+        wsInstance.send(payload);
+      } else {
+        const ws = new MockWebSocket('wss://test.tikfinity.zerody.one/ws');
+        ws.send(payload);
+      }
+    });
+
+    document.getElementById('btn-send-ws-message').addEventListener('click', () => {
+      const msg = JSON.stringify({ eventName: 'chat', data: { comment: 'Hello world', user: 'tester' } });
+      log(`Sending regular message: ${msg}`, 'info');
+      if (wsInstance) {
+        wsInstance.send(msg);
+      }
+    });
+
+    document.getElementById('btn-check-events').addEventListener('click', () => {
+      if (window.getPendingEvents) {
+        const events = window.getPendingEvents();
+        log(`Pending events: ${JSON.stringify(events)}`, 'success');
+      } else {
+        log('getPendingEvents not available', 'error');
+      }
+    });
+
+    document.getElementById('btn-check-payload').addEventListener('click', () => {
+      if (window.getPayload) {
+        const payload = window.getPayload();
+        log(`Captured payload: ${payload}`, 'success');
+      } else {
+        log('getPayload not available', 'error');
+      }
+    });
+
+    document.getElementById('btn-clear-log').addEventListener('click', () => {
+      document.getElementById('log').innerHTML = '';
+    });
+
+    // Listen for custom events from backend
+    window.addEventListener('tikfinity-chat', (e) => {
+      log(`Custom event received: ${JSON.stringify(e.detail)}`, 'success');
+    });
+
+    window.addEventListener('message', (e) => {
+      log(`Message event from ${e.origin}: ${JSON.stringify(e.data)}`, 'success');
+    });
+
+    log('Test page loaded. WebSocket interceptor should be active.', 'success');
+  </script>
+</body>
+</html>

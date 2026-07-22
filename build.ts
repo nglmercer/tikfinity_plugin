@@ -23,23 +23,15 @@ await Promise.all([
     external: ["webview-napi"],
     define: define,
   }),
-]);
 
-/* await Promise.all([
-  // Main build
+  // E2E test build
   Bun.build({
-    entrypoints: ["src/index.ts"],
-    outdir: "dist",
+    entrypoints: ["webview/__tests__/e2e-webview.ts"],
+    outdir: "dist/webview/__tests__",
     target: "bun",
-    naming: "[dir]/pluginclaws.[ext]",
-    define: define
-  }),
-
-  // Webview script build
-  Bun.build({
-    entrypoints: ["webview/tikfinity-webview.ts"],
-    outdir: "dist/webview",
-    target: "bun",
+    external: ["webview-napi"],
     define: define,
   }),
-]); */
+
+
+]);

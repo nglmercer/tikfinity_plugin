@@ -15,7 +15,9 @@
   },
   "scripts": {
     "dev": "tsx src/index.ts",
-    "build": "bun build.ts"
+    "build": "bun build.ts",
+    "test:e2e": "bun build.ts && bun dist/webview/__tests__/e2e-webview.js",
+    "test:unit": "bun test webview/__tests__/*.test.ts"
   },
   "dependencies": {
     "cheerio": "^1.2.0",
