@@ -1,5 +1,4 @@
 // build.ts
-import { build } from "esbuild";
 import { version, name } from "./package.json";
 
 const define = {
@@ -8,24 +7,39 @@ const define = {
 
 await Promise.all([
   // Main build
-  build({
-    entryPoints: ["src/index.ts"],
+  Bun.build({
+    entrypoints: ["src/index.ts"],
     outdir: "dist",
-    entryNames: `[dir]/${name}`,
-    bundle: true,
-    platform: "node",
-    format: "esm",
+    naming: `[dir]/${name}.[ext]`,
+    target: "bun",
     define,
   }),
 
   // Webview script build
-  build({
-    entryPoints: ["webview/tikfinity-webview.ts"],
+  Bun.build({
+    entrypoints: ["webview/tikfinity-webview.ts"],
     outdir: "dist/webview",
-    entryNames: "[name]",
-    bundle: true,
-    platform: "node",
-    format: "esm",
-    define,
+    target: "bun",
+    external: ["webview-napi"],
+    define: define,
   }),
 ]);
+
+/* await Promise.all([
+  // Main build
+  Bun.build({
+    entrypoints: ["src/index.ts"],
+    outdir: "dist",
+    target: "bun",
+    naming: "[dir]/pluginclaws.[ext]",
+    define: define
+  }),
+
+  // Webview script build
+  Bun.build({
+    entrypoints: ["webview/tikfinity-webview.ts"],
+    outdir: "dist/webview",
+    target: "bun",
+    define: define,
+  }),
+]); */
